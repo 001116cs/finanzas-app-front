@@ -1,7 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-
-const RUTAS_PUBLICAS = ['/login', '/registro'];
+import { decidirRedireccion } from '@/lib/redireccion';
 
 export async function proxy(request: NextRequest) {
   let respuesta = NextResponse.next({ request });
@@ -28,12 +27,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const esPublica = RUTAS_PUBLICAS.includes(pathname);
-
-  let destino: string | null = null;
-  if (!user && !esPublica) destino = '/login';
-  else if (user && esPublica) destino = '/';
+  const destino = decidirRedireccion(request.nextUrl.pathname, !!user);
   if (!destino) return respuesta;
 
   const redireccion = NextResponse.redirect(new URL(destino, request.url));

@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { Suspense, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AvisoSesionExpirada } from '@/componentes/aviso-sesion-expirada';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { mensajeDeErrorAuth } from '@/lib/errores-auth';
@@ -48,6 +49,9 @@ export default function Login() {
       </CardHeader>
       <CardContent>
         <form onSubmit={enviar} className="grid gap-4">
+          <Suspense>
+            <AvisoSesionExpirada />
+          </Suspense>
           <div className="grid gap-2">
             <Label htmlFor="correo">{mensajes.auth.correo}</Label>
             <Input id="correo" type="email" autoComplete="email" required value={correo} onChange={(e) => setCorreo(e.target.value)} />
