@@ -1,3 +1,5 @@
+import { BotonCerrarSesion } from '@/componentes/boton-cerrar-sesion';
+import { mensajes } from '@/mensajes/es';
 import { redirect } from 'next/navigation';
 import { crearClienteApi, ErrorApi } from '@/lib/api/cliente';
 import { crearClienteSupabaseServidor } from '@/lib/supabase/servidor';
@@ -11,10 +13,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   try {
     await crearClienteApi(async () => token).GET('/perfil');
   } catch (e) {
+    if (e instanceof ErrorApi && e.status === 401) redirect('/login');
     if (e instanceof ErrorApi && e.codigo === 'PERFIL_REQUERIDO') {
       redirect('/completar-perfil');
     }
     throw e;
   }
-  return <>{children}</>;
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">
+      <header className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">{mensajes.app.nombre}</h1>
+        <BotonCerrarSesion />
+      </header>
+      <main className="flex-1">{children}</main>
+    </div>
+  );
 }
