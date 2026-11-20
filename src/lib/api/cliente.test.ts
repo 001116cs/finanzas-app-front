@@ -49,6 +49,20 @@ describe('crearClienteApi', () => {
     expect((error as ErrorApi).codigo).toBeUndefined();
   });
 
+  it('un 502 con cuerpo HTML produce ErrorApi sin codigo', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('<html><body>Bad Gateway</body></html>', {
+        status: 502,
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+    const api = crearClienteApi(async () => 't', fetchMock);
+    const error = await api.GET('/perfil').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ErrorApi);
+    expect((error as ErrorApi).status).toBe(502);
+    expect((error as ErrorApi).codigo).toBeUndefined();
+  });
+
   it('devuelve data en respuestas 2xx', async () => {
     const perfil = { id: '1', moneda: 'PEN', zonaHoraria: 'America/Lima' };
     const fetchMock = vi.fn().mockResolvedValue(json(200, perfil));
