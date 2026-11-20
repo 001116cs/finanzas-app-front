@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   try {
     await crearClienteApi(async () => token).GET('/perfil');
   } catch (e) {
-    if (e instanceof ErrorApi && e.status === 401) redirect('/login');
+    if (e instanceof ErrorApi && e.status === 401) redirect('/salir');
     if (e instanceof ErrorApi && e.codigo === 'PERFIL_REQUERIDO') {
       redirect('/completar-perfil');
     }
@@ -27,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <nav className="flex gap-4 text-sm">
           <Link href="/">{mensajes.navegacion.inicio}</Link>
           <Link href="/categorias">{mensajes.navegacion.categorias}</Link>
+          <Link href="/ajustes">{mensajes.navegacion.ajustes}</Link>
         </nav>
         <BotonCerrarSesion />
       </header>

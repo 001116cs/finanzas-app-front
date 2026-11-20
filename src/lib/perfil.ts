@@ -25,3 +25,15 @@ export async function crearPerfil(moneda: string): Promise<void> {
     body: { moneda, zonaHoraria: zonaDelNavegador() },
   });
 }
+
+export async function actualizarPerfil(cambios: {
+  moneda?: string;
+  zonaHoraria?: string;
+}): Promise<void> {
+  const supabase = crearClienteSupabase();
+  const api = crearClienteApi(async () => {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  });
+  await api.PATCH('/perfil', { body: cambios });
+}
