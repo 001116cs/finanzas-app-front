@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { components } from '@/lib/api/esquema';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
+import { mensajes } from '@/mensajes/es';
 import { hoyISO, periodoAParams, type Periodo } from '@/lib/periodos';
 
 type Resumen = components['schemas']['ResumenRespuesta'];
@@ -26,9 +27,11 @@ export function useDatosPeriodo(periodo: Periodo) {
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const clave = JSON.stringify(periodo);
+  const generacion = useRef(0);
 
   useEffect(() => {
     let activo = true;
+    generacion.current++;
     (async () => {
       setCargando(true);
       setError(null);
@@ -60,6 +63,7 @@ export function useDatosPeriodo(periodo: Periodo) {
 
   const cargarMas = useCallback(async () => {
     if (!resumen) return;
+    const miGeneracion = generacion.current;
     setCargandoMas(true);
     try {
       const { data: l } = await api.GET('/transacciones', {
@@ -67,15 +71,16 @@ export function useDatosPeriodo(periodo: Periodo) {
           query: { desde: resumen.desde, hasta: resumen.hasta, pagina: pagina + 1, tamano: TAMANO },
         },
       });
+      if (miGeneracion !== generacion.current) return;
       if (l) {
         setItems((prev) => [...prev, ...l.items]);
         setTotal(l.total);
         setPagina(pagina + 1);
       }
     } catch (e) {
-      setError(mensajeDeError(e));
+      if (miGeneracion === generacion.current) setError(mensajeDeError(e));
     } finally {
-      setCargandoMas(false);
+      if (miGeneracion === generacion.current) setCargandoMas(false);
     }
   }, [api, resumen, pagina]);
 
@@ -87,18 +92,24 @@ export function useDatosPeriodo(periodo: Periodo) {
 export function useCategorias() {
   const api = useApi();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [cargadas, setCargadas] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let activo = true;
     api
       .GET('/categorias', { params: { query: {} } })
       .then(({ data }) => {
-        // esquema.d.ts tipa mal esta respuesta (falta el tipo del arreglo); ver informe de la Task 11.
-        if (activo && data) setCategorias(data as unknown as Categoria[]);
+        if (activo && data) {
+          setCategorias(data);
+          setCargadas(true);
+        }
       })
-      .catch(() => {});
+      .catch((e) => {
+        if (activo) setError(mensajeDeError(e) === mensajes.errores.red ? mensajes.errores.red : mensajes.errores.categorias);
+      });
     return () => {
       activo = false;
     };
   }, [api]);
-  return categorias;
+  return { categorias, cargadas, error };
 }

@@ -43,3 +43,13 @@ describe('periodo <-> query', () => {
     );
   });
 });
+
+describe('periodoDesdeQuery con rangos inválidos', () => {
+  it.each([
+    'desde=2026-02-10&hasta=2026-02-01',
+    'desde=2026-13-45&hasta=2026-14-01',
+    'desde=2026-02-30&hasta=2026-03-01',
+  ])('%s cae a este_mes', (q) => {
+    expect(periodoDesdeQuery(new URLSearchParams(q))).toEqual({ clave: 'este_mes' });
+  });
+});

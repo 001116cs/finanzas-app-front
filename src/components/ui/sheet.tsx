@@ -1,4 +1,5 @@
 "use client"
+import { mensajes } from "@/mensajes/es"
 
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
@@ -72,7 +73,7 @@ function SheetContent({
           >
             <XIcon
             />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{mensajes.acciones.cerrar}</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Popup>

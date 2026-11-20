@@ -128,6 +128,15 @@ describe('FormularioMovimiento', () => {
       });
     });
 
+    it('no pierde la categoría si las categorías no están cargadas', async () => {
+      patch.mockResolvedValue({ data: {} });
+      const onGuardado = vi.fn();
+      render(<FormularioMovimiento categorias={[]} inicial={inicial} onGuardado={onGuardado} />);
+      await userEvent.setup().click(screen.getByRole('button', { name: mensajes.acciones.guardar }));
+      await waitFor(() => expect(onGuardado).toHaveBeenCalled());
+      expect(patch.mock.calls[0][1].body.categoriaId).toBe('i1');
+    });
+
     it('Eliminar pide confirmación y luego borra', async () => {
       del.mockResolvedValue({ data: undefined });
       const onGuardado = vi.fn();

@@ -23,10 +23,16 @@ export function periodoAParams(p: Periodo, hoy: string): { desde?: string; hasta
   return { desde: `${a}-${dos(m)}-01`, hasta: `${a}-${dos(m)}-${dos(ultimo)}` };
 }
 
+function fechaReal(f: string): boolean {
+  if (!FECHA.test(f)) return false;
+  const d = new Date(`${f}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === f;
+}
+
 export function periodoDesdeQuery(q: URLSearchParams): Periodo {
   const desde = q.get('desde');
   const hasta = q.get('hasta');
-  if (desde && hasta && FECHA.test(desde) && FECHA.test(hasta)) {
+  if (desde && hasta && fechaReal(desde) && fechaReal(hasta) && desde <= hasta) {
     return { clave: 'rango', desde, hasta };
   }
   if (q.get('periodo') === 'mes_anterior') return { clave: 'mes_anterior' };

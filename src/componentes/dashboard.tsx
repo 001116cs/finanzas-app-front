@@ -22,7 +22,7 @@ export function Dashboard() {
   const periodo = periodoDesdeQuery(new URLSearchParams(query.toString()));
   const { resumen, items, total, cargando, cargandoMas, error, cargarMas, refrescar } =
     useDatosPeriodo(periodo);
-  const categorias = useCategorias();
+  const { categorias, error: errorCategorias } = useCategorias();
   const [editando, setEditando] = useState<Transaccion | null>(null);
 
   function cambiarPeriodo(p: Periodo) {
@@ -40,6 +40,11 @@ export function Dashboard() {
             {mensajes.errores.reintentar}
           </Button>
         </div>
+      )}
+      {errorCategorias && (
+        <p role="alert" className="text-sm text-destructive">
+          {errorCategorias}
+        </p>
       )}
       {cargando && !resumen && <p className="text-sm text-muted-foreground">{mensajes.dashboard.cargando}</p>}
       {resumen && (

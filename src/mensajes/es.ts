@@ -13,6 +13,7 @@ export const mensajes = {
     CATEGORIA_INCOMPATIBLE: 'La categoría no corresponde al tipo de movimiento.',
     MONTO_INVALIDO: 'El monto no es válido.',
     reintentar: 'Reintentar',
+    categorias: 'No pudimos cargar tus categorías.',
   },
   acciones: {
     guardar: 'Guardar',
@@ -20,6 +21,7 @@ export const mensajes = {
     eliminar: 'Eliminar',
     editar: 'Editar',
     cerrarSesion: 'Cerrar sesión',
+    cerrar: 'Cerrar',
   },
   auth: {
     correo: 'Correo electrónico',

@@ -151,11 +151,6 @@ export interface components {
             /** @example America/Lima */
             zonaHoraria?: string;
         };
-        CrearCategoriaDto: {
-            nombre: string;
-            /** @enum {string} */
-            tipo: "gasto" | "ingreso";
-        };
         CategoriaRespuesta: {
             /** Format: uuid */
             id: string;
@@ -164,6 +159,11 @@ export interface components {
             tipo: "gasto" | "ingreso";
             /** @example 0 */
             cantidadMovimientos: number;
+        };
+        CrearCategoriaDto: {
+            nombre: string;
+            /** @enum {string} */
+            tipo: "gasto" | "ingreso";
         };
         RenombrarCategoriaDto: {
             nombre: string;
@@ -431,7 +431,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"];
+                    "application/json": components["schemas"]["CategoriaRespuesta"][];
                 };
             };
             401: {

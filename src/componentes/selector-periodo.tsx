@@ -12,6 +12,15 @@ export function SelectorPeriodo({ valor, onCambio }: Props) {
   const [modoRango, setModoRango] = useState(valor.clave === 'rango');
   const [desde, setDesde] = useState(valor.clave === 'rango' ? valor.desde : '');
   const [hasta, setHasta] = useState(valor.clave === 'rango' ? valor.hasta : '');
+  // Resincroniza el estado local cuando `valor` cambia desde fuera (URL).
+  const claveValor = JSON.stringify(valor);
+  const [claveVista, setClaveVista] = useState(claveValor);
+  if (claveVista !== claveValor) {
+    setClaveVista(claveValor);
+    setModoRango(valor.clave === 'rango');
+    setDesde(valor.clave === 'rango' ? valor.desde : '');
+    setHasta(valor.clave === 'rango' ? valor.hasta : '');
+  }
   const invalido = modoRango && desde !== '' && hasta !== '' && desde > hasta;
 
   function elegir(clave: string) {

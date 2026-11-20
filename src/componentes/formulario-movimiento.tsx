@@ -141,6 +141,13 @@ export function FormularioMovimiento({ categorias, inicial, onGuardado }: Props)
           className={selectClase}
         >
           <option value="">{mensajes.movimiento.sinCategoria}</option>
+          {inicial?.categoriaId &&
+            inicial.tipo === tipo &&
+            !categorias.some((c) => c.id === inicial.categoriaId) && (
+              <option value={inicial.categoriaId}>
+                {inicial.categoriaNombre ?? mensajes.movimiento.sinCategoria}
+              </option>
+            )}
           {categorias
             .filter((c) => c.tipo === tipo)
             .map((c) => (
