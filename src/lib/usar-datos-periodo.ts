@@ -34,6 +34,7 @@ export function useDatosPeriodo(periodo: Periodo) {
     generacion.current++;
     (async () => {
       setCargando(true);
+      setCargandoMas(false);
       setError(null);
       try {
         const p = JSON.parse(clave) as Periodo;

@@ -44,5 +44,20 @@ describe('useDatosPeriodo: cargarMas obsoleto', () => {
     await act(async () => { pendiente!({ data: { items: [tx('viejo-p2')], total: 99 } }); });
     expect(result.current.items.map((i) => i.id)).toEqual(['p1-2026-01-01']);
     expect(result.current.total).toBe(40);
+    expect(result.current.cargandoMas).toBe(false);
+  });
+
+  it('refrescar durante cargarMas pendiente descarta el resultado y limpia cargandoMas', async () => {
+    pendiente = null;
+    const { result } = renderHook(() => useDatosPeriodo({ clave: 'este_mes' }));
+    await waitFor(() => expect(result.current.resumen).not.toBeNull());
+    act(() => { void result.current.cargarMas(); });
+    await waitFor(() => expect(pendiente).not.toBeNull());
+    expect(result.current.cargandoMas).toBe(true);
+    act(() => result.current.refrescar());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    await act(async () => { pendiente!({ data: { items: [tx('viejo-p2')], total: 99 } }); });
+    expect(result.current.items.map((i) => i.id)).toEqual(['p1-2026-11-01']);
+    expect(result.current.cargandoMas).toBe(false);
   });
 });
