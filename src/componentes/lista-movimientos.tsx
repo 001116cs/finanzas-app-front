@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import type { components } from '@/lib/api/esquema';
+import { formatearFecha } from '@/lib/fechas';
 import { formatearMonto } from '@/lib/monto';
 import { mensajes } from '@/mensajes/es';
 
@@ -33,7 +34,7 @@ export function ListaMovimientos({ items, total, moneda, cargandoMas, onEditar, 
                 <span className="grid min-w-0">
                   <span className="truncate font-medium">{t.descripcion}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {t.fecha} · {t.categoriaNombre ?? mensajes.dashboard.sinCategoria}
+                    {formatearFecha(t.fecha)} · {t.categoriaNombre ?? mensajes.dashboard.sinCategoria}
                   </span>
                 </span>
                 <span className={t.tipo === 'gasto' ? 'shrink-0 text-red-600' : 'shrink-0 text-green-700'}>
