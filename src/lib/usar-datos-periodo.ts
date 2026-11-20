@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { components } from '@/lib/api/esquema';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
 import { mensajes } from '@/mensajes/es';
-import { hoyISO, periodoAParams, type Periodo } from '@/lib/periodos';
+import { periodoAParams, type Periodo } from '@/lib/periodos';
 
 type Resumen = components['schemas']['ResumenRespuesta'];
 type Transaccion = components['schemas']['TransaccionRespuesta'];
@@ -39,7 +39,7 @@ export function useDatosPeriodo(periodo: Periodo) {
       try {
         const p = JSON.parse(clave) as Periodo;
         const { data: r } = await api.GET('/resumen', {
-          params: { query: periodoAParams(p, hoyISO()) },
+          params: { query: periodoAParams(p) },
         });
         if (!r) throw new Error('sin datos');
         const { data: l } = await api.GET('/transacciones', {

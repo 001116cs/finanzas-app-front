@@ -823,6 +823,8 @@ export interface operations {
     ResumenController_get: {
         parameters: {
             query?: {
+                /** @description Período relativo resuelto en la zona del perfil; excluyente con desde/hasta */
+                periodo?: "mes_anterior";
                 desde?: string;
                 hasta?: string;
             };
