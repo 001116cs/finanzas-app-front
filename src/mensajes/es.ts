@@ -23,7 +23,6 @@ export const mensajes = {
     cerrarSesion: 'Cerrar sesión',
     cerrar: 'Cerrar',
     agregar: 'Agregar',
-    continuar: 'Continuar',
   },
   auth: {
     correo: 'Correo electrónico',
@@ -110,7 +109,6 @@ export const mensajes = {
     vacia: 'No tienes categorías de este tipo.',
     movimientos: (n: number) => (n === 1 ? '1 movimiento' : `${n} movimientos`),
     renombrar: 'Renombrar',
-    eliminarCategoria: 'Eliminar categoría',
     eliminarTitulo: (nombre: string) => `Eliminar "${nombre}"`,
     confirmarSimple: 'Esta categoría no tiene movimientos. ¿Eliminarla?',
     tieneMovimientos: (n: number) =>
@@ -124,6 +122,5 @@ export const mensajes = {
     segundaConfirmacion: (n: number) =>
       `Se eliminarán ${n === 1 ? '1 movimiento' : `${n} movimientos`}. Esta acción no se puede deshacer`,
     eliminando: 'Eliminando…',
-    guardando: 'Guardando…',
   },
 } as const;

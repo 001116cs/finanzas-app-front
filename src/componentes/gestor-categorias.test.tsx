@@ -77,4 +77,53 @@ describe('GestorCategorias', () => {
       }),
     );
   });
+
+  it('Escape cancela el renombrado', async () => {
+    render(<GestorCategorias />);
+    await screen.findByText('Comida');
+    const u = userEvent.setup();
+    await u.click(screen.getByRole('button', { name: mensajes.categorias.renombrar }));
+    await u.type(screen.getByLabelText(mensajes.categorias.nombre), '{Escape}');
+    expect(screen.queryByLabelText(mensajes.categorias.nombre)).toBeNull();
+    expect(patch).not.toHaveBeenCalled();
+  });
+
+  it('renombrar con nombre duplicado muestra el mensaje y mantiene la edición', async () => {
+    patch.mockRejectedValue(new ErrorApi(409, 'x', 'CATEGORIA_DUPLICADA'));
+    render(<GestorCategorias />);
+    await screen.findByText('Comida');
+    const u = userEvent.setup();
+    await u.click(screen.getByRole('button', { name: mensajes.categorias.renombrar }));
+    await u.type(screen.getByLabelText(mensajes.categorias.nombre), 'x');
+    await u.click(screen.getByRole('button', { name: mensajes.acciones.guardar }));
+    expect(await screen.findByText(mensajes.errores.CATEGORIA_DUPLICADA)).toBeInTheDocument();
+    expect(screen.getByLabelText(mensajes.categorias.nombre)).toBeInTheDocument();
+  });
+
+  it('si falla la carga muestra reintentar, no el mensaje de vacío, y reintenta', async () => {
+    get.mockRejectedValueOnce(new ErrorApi(500, 'x'));
+    render(<GestorCategorias />);
+    expect(await screen.findByText(mensajes.errores.generico)).toBeInTheDocument();
+    expect(screen.queryByText(mensajes.categorias.vacia)).toBeNull();
+    await userEvent.setup().click(screen.getByRole('button', { name: mensajes.errores.reintentar }));
+    expect(await screen.findByText('Comida')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: mensajes.errores.reintentar })).toBeNull();
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('pestañas: panel enlazado, ArrowRight cambia de pestaña y tabIndex rodante', async () => {
+    render(<GestorCategorias />);
+    await screen.findByText('Comida');
+    const gastos = screen.getByRole('tab', { name: mensajes.categorias.gastos });
+    const ingresos = screen.getByRole('tab', { name: mensajes.categorias.ingresos });
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', gastos.id);
+    expect(gastos).toHaveAttribute('aria-controls', screen.getByRole('tabpanel').id);
+    expect(gastos).toHaveAttribute('tabindex', '0');
+    expect(ingresos).toHaveAttribute('tabindex', '-1');
+    gastos.focus();
+    await userEvent.setup().keyboard('{ArrowRight}');
+    expect(ingresos).toHaveAttribute('aria-selected', 'true');
+    expect(ingresos).toHaveFocus();
+    expect(screen.getByText('Sueldo')).toBeInTheDocument();
+  });
 });
