@@ -29,7 +29,7 @@ Genera `src/lib/api/esquema.d.ts` a partir de `../finanzas-app-back/openapi.json
 ## Tests
 
 ```bash
-npx vitest run
+npm test
 ```
 
 ## Despliegue
@@ -41,13 +41,13 @@ Orden: Supabase, Railway (back), Vercel (front) y, al final, volver a Railway pa
 1. Crea un proyecto en [supabase.com](https://supabase.com).
 2. Authentication → Sign In / Providers → Email: desactiva **Confirm email**.
 3. Project Settings → API: copia el **Project URL** y la **anon key** (para el front).
-4. Connect → Connection string → **Transaction pooler**: copia la cadena Postgres (reemplaza la contraseña) para `DATABASE_URL` del back.
+4. Connect → Connection string → **Session pooler** (puerto 5432): copia la cadena Postgres (reemplaza la contraseña) para `DATABASE_URL` del back. Funciona desde hosts IPv4 como Railway y admite sentencias preparadas y migraciones. No uses el Transaction pooler (puerto 6543): no soporta sentencias preparadas y este back las usa.
 
 ### b) Railway (back)
 
 1. New Project → Deploy from GitHub repo → elige `finanzas-app-back`. Railway detecta el `Dockerfile`.
 2. En Variables añade:
-   - `DATABASE_URL`: la cadena del pooler de Supabase.
+   - `DATABASE_URL`: la cadena del Session pooler de Supabase.
    - `SUPABASE_URL`: el Project URL.
    - `FRONT_URL`: provisional (ej. `http://localhost:3000`); se actualiza en el paso d.
    - `NODE_ENV=production`.
