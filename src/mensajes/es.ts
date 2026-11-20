@@ -12,6 +12,13 @@ export const mensajes = {
     MODO_REQUERIDO: 'Elige qué hacer con los movimientos de esta categoría.',
     CATEGORIA_INCOMPATIBLE: 'La categoría no corresponde al tipo de movimiento.',
     MONTO_INVALIDO: 'El monto no es válido.',
+    DESTINO_INVALIDO: 'La categoría de destino no es válida.',
+    FECHA_INVALIDA: 'La fecha no es válida.',
+    RANGO_INVALIDO: 'El rango de fechas no es válido.',
+    VALIDACION: 'Revisa los datos ingresados: alguno no es válido.',
+    AUTH_NO_DISPONIBLE: 'El servicio de autenticación no está disponible. Inténtalo de nuevo en un momento.',
+    paginaFallo:
+      'No pudimos cargar la página. Puede que el servidor no esté disponible; inténtalo de nuevo en un momento.',
     reintentar: 'Reintentar',
     categorias: 'No pudimos cargar tus categorías.',
   },
@@ -98,6 +105,12 @@ export const mensajes = {
   navegacion: {
     inicio: 'Dashboard',
     categorias: 'Categorías',
+    ajustes: 'Ajustes',
+  },
+  ajustes: {
+    titulo: 'Ajustes',
+    zonaHoraria: 'Zona horaria',
+    guardado: 'Cambios guardados.',
   },
   categorias: {
     titulo: 'Categorías',
