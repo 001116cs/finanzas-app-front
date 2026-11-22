@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { decidirRedireccion } from '@/lib/redireccion';
+import { haySesionValida } from '@/lib/sesion';
 
 export async function proxy(request: NextRequest) {
   let respuesta = NextResponse.next({ request });
@@ -22,12 +23,10 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  // getUser valida el token con Supabase y refresca la sesión si hace falta.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims valida el token en local (JWKS en caché) y refresca la sesión si hace falta.
+  const haySesion = await haySesionValida(supabase.auth);
 
-  const destino = decidirRedireccion(request.nextUrl.pathname, !!user);
+  const destino = decidirRedireccion(request.nextUrl.pathname, haySesion);
   if (!destino) return respuesta;
 
   const redireccion = NextResponse.redirect(new URL(destino, request.url));
