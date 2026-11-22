@@ -13,7 +13,7 @@ export function BotonCerrarSesion() {
     router.refresh();
   }
   return (
-    <Button variant="outline" onClick={salir}>
+    <Button variant="outline" size="sm" onClick={salir}>
       {mensajes.acciones.cerrarSesion}
     </Button>
   );
