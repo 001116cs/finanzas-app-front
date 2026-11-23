@@ -4,12 +4,15 @@ import type { paths } from './esquema';
 export class ErrorApi extends Error {
   readonly status: number;
   readonly codigo?: string;
+  /** Índice 0-based de la fila con el problema (errores de importación). */
+  readonly fila?: number;
 
-  constructor(status: number, mensaje: string, codigo?: string) {
+  constructor(status: number, mensaje: string, codigo?: string, fila?: number) {
     super(mensaje);
     this.name = 'ErrorApi';
     this.status = status;
     this.codigo = codigo;
+    this.fila = fila;
   }
 }
 
@@ -25,7 +28,7 @@ export function crearClienteApi(
     },
     async onResponse({ response }) {
       if (response.ok) return undefined;
-      let cuerpo: { codigo?: string; mensaje?: string } | undefined;
+      let cuerpo: { codigo?: string; mensaje?: string; fila?: number } | undefined;
       try {
         cuerpo = await response.clone().json();
       } catch {
@@ -35,6 +38,7 @@ export function crearClienteApi(
         response.status,
         cuerpo?.mensaje ?? response.statusText,
         cuerpo?.codigo,
+        typeof cuerpo?.fila === 'number' ? cuerpo.fila : undefined,
       );
     },
   };

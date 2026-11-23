@@ -40,6 +40,16 @@ describe('crearClienteApi', () => {
     expect((error as ErrorApi).codigo).toBe('PERFIL_REQUERIDO');
   });
 
+  it('expone la fila de un error 400 de importación', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(json(400, { codigo: 'MONTO_INVALIDO', mensaje: 'x', fila: 3 }));
+    const api = crearClienteApi(async () => 't', fetchMock);
+    const error = await api.GET('/perfil').catch((e: unknown) => e);
+    expect((error as ErrorApi).fila).toBe(3);
+    expect((error as ErrorApi).codigo).toBe('MONTO_INVALIDO');
+  });
+
   it('un error sin cuerpo JSON produce ErrorApi sin codigo', async () => {
     const fetchMock = vi.fn().mockResolvedValue(json(500));
     const api = crearClienteApi(async () => 't', fetchMock);
