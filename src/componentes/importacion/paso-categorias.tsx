@@ -11,9 +11,10 @@ type Props = {
   eleccion: Eleccion;
   hayCategoriaLote: boolean;
   onEleccion: (e: Eleccion) => void;
+  ocupado: boolean;
 };
 
-export function PasoCategorias({ desconocidas, eleccion, hayCategoriaLote, onEleccion }: Props) {
+export function PasoCategorias({ desconocidas, eleccion, hayCategoriaLote, onEleccion, ocupado }: Props) {
   const opciones: { valor: Eleccion; texto: string; deshabilitada?: boolean }[] = [
     { valor: 'crear', texto: m.crear },
     { valor: 'lote', texto: m.lote, deshabilitada: !hayCategoriaLote },
@@ -32,7 +33,7 @@ export function PasoCategorias({ desconocidas, eleccion, hayCategoriaLote, onEle
           {m.nombreLargo}
         </p>
       )}
-      <fieldset className="grid gap-2">
+      <fieldset disabled={ocupado} className="grid gap-2">
         <legend className="sr-only">{m.titulo}</legend>
         {opciones.map((o) => (
           <label key={o.valor} className="flex items-center gap-2 text-sm">

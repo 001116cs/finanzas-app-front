@@ -18,6 +18,8 @@ type Props = {
   derivados: Derivados;
   categorias: Categoria[];
   dispatch: (a: Accion) => void;
+  /** Hay una consulta en curso: nada del paso se puede cambiar. */
+  ocupado: boolean;
 };
 
 function Selector({
@@ -55,7 +57,7 @@ function Selector({
   );
 }
 
-export function PasoColumnas({ estado, derivados, categorias, dispatch }: Props) {
+export function PasoColumnas({ estado, derivados, categorias, dispatch, ocupado }: Props) {
   const { hoja, interpretacion, esAmbos } = derivados;
   if (!hoja) return null;
   const cambiar = (cambios: Partial<Estado>) => dispatch({ tipo: 'cambiar', cambios });
@@ -71,9 +73,9 @@ export function PasoColumnas({ estado, derivados, categorias, dispatch }: Props)
   const claveBase = `${estado.hoja}|${estado.encabezado}`;
 
   return (
-    <div className="grid gap-4">
-      <section aria-label={m.muestra} className="grid gap-2">
-        <div className="max-w-full overflow-x-auto rounded-lg border">
+    <fieldset disabled={ocupado} className="grid min-w-0 gap-4">
+      <section aria-label={m.muestra} className="grid min-w-0 gap-2">
+        <div className="min-w-0 max-w-full overflow-x-auto rounded-lg border">
           <table className="w-full text-xs">
             <tbody>
               {muestra.map((fila, i) => (
@@ -187,6 +189,6 @@ export function PasoColumnas({ estado, derivados, categorias, dispatch }: Props)
       {interpretacion && interpretacion.filas.length === 0 && estado.monto !== undefined && (
         <p className="text-sm text-destructive">{m.sinFilas}</p>
       )}
-    </div>
+    </fieldset>
   );
 }

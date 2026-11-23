@@ -156,8 +156,9 @@ export const mensajes = {
     accionImportar: 'Importar',
     importando: 'Importando…',
     cargando: 'Cargando…',
-    errorImportando: (fila: number, motivo: string) =>
-      `Error en la fila ${fila} de las filas marcadas para importar. ${motivo}`,
+    errorImportando: (fila: number, motivo: string) => `Error en la fila ${fila} del archivo. ${motivo}`,
+    errorImportandoSinFila: (indice: number, motivo: string) =>
+      `Error en la fila ${indice} de las filas marcadas para importar. ${motivo}`,
     archivo: {
       etiqueta: 'Archivo de Excel o CSV',
       ayuda: 'Formatos .xlsx, .xls o .csv, hasta 5 MB.',
@@ -234,6 +235,7 @@ export const mensajes = {
       resumen: (aImportar: number, omitidas: number, gastos: string, ingresos: string) =>
         `${aImportar === 1 ? '1 fila' : `${aImportar} filas`} a importar · ${omitidas === 1 ? '1 omitida' : `${omitidas} omitidas`} · total gastos ${gastos} · total ingresos ${ingresos}`,
       demasiadas: 'Hay más de 2.000 filas válidas. Divide el archivo para poder importarlo.',
+      limitada: (mostradas: number, total: number) => `Se muestran las primeras ${mostradas} de ${total} filas.`,
       fecha: 'Fecha',
       descripcion: 'Descripción',
       monto: 'Monto',

@@ -227,7 +227,7 @@ describe('AsistenteImportacion', () => {
     expect(onImportado).toHaveBeenCalledTimes(1);
   });
 
-  it('un error con fila 3 menciona la fila 4', async () => {
+  it('un error con fila 3 señala la fila del archivo (origen + 1) y la resalta en la vista previa', async () => {
     post.mockImplementation(async (ruta: string) => {
       if (ruta === '/importaciones/duplicados') return { data: { indices: [] } };
       throw new ErrorApi(400, 'x', 'MONTO_INVALIDO', 3);
@@ -236,9 +236,75 @@ describe('AsistenteImportacion', () => {
     await extractoHastaVista(u);
     await u.click(await screen.findByRole('button', { name: m.accionImportar }));
     const alerta = await screen.findByRole('alert');
-    expect(alerta).toHaveTextContent(/fila 4/i);
+    // índice 3 enviado = NETFLIX.COM = fila 5 del archivo (encabezado = fila 1)
+    expect(alerta).toHaveTextContent('fila 5 del archivo');
     expect(alerta).toHaveTextContent(mensajes.errores.MONTO_INVALIDO);
+    const lista = screen.getByRole('list', { name: m.vista.lista });
+    const conError = lista.querySelectorAll('[data-error="true"]');
+    expect(conError).toHaveLength(1);
+    expect(conError[0]).toHaveTextContent('NETFLIX.COM');
     expect(onImportado).not.toHaveBeenCalled();
+  });
+
+  it('un error con fila fuera de rango usa el texto genérico con el índice', async () => {
+    post.mockImplementation(async (ruta: string) => {
+      if (ruta === '/importaciones/duplicados') return { data: { indices: [] } };
+      throw new ErrorApi(400, 'x', 'MONTO_INVALIDO', 99);
+    });
+    const { u } = montarAsistente();
+    await extractoHastaVista(u);
+    await u.click(await screen.findByRole('button', { name: m.accionImportar }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(mensajes.errores.MONTO_INVALIDO);
+    expect(document.querySelectorAll('[data-error="true"]')).toHaveLength(0);
+  });
+
+  it('Atrás, cambiar el mapeo y Siguiente vuelve a consultar duplicados', async () => {
+    const { u } = montarAsistente();
+    await extractoHastaVista(u);
+    await screen.findByRole('list', { name: m.vista.lista });
+    const llamadas = () => post.mock.calls.filter((c) => c[0] === '/importaciones/duplicados');
+    expect(llamadas()).toHaveLength(1);
+    await u.click(screen.getByRole('button', { name: m.atras }));
+    await u.click(await screen.findByRole('radio', { name: m.signos.positivos }));
+    await siguiente(u);
+    await screen.findByRole('list', { name: m.vista.lista });
+    expect(llamadas()).toHaveLength(2);
+    expect(llamadas()[1][1].body.filas).toHaveLength(3);
+  });
+
+  it('mientras busca duplicados, el paso Columnas queda deshabilitado', async () => {
+    let soltar: (v: unknown) => void = () => {};
+    post.mockImplementation((ruta: string) =>
+      ruta === '/importaciones/duplicados'
+        ? new Promise((r) => (soltar = r))
+        : Promise.resolve({ data: {} }),
+    );
+    const { u } = montarAsistente();
+    await subir(u, fixture('1-extracto-banco.csv'));
+    await siguiente(u);
+    await u.click(await screen.findByRole('radio', { name: m.signos.ambos }));
+    await siguiente(u);
+    expect(screen.getByLabelText(m.columnas.monto)).toBeDisabled();
+    expect(screen.getByRole('radio', { name: m.signos.positivos })).toBeDisabled();
+    expect(within(screen.getByTestId('recuadro-formato')).getAllByRole('radio')[0]).toBeDisabled();
+    soltar({ data: { indices: [] } });
+    await screen.findByRole('list', { name: m.vista.lista });
+  });
+
+  it('un doble clic en Importar envía una sola vez', async () => {
+    let soltar: (v: unknown) => void = () => {};
+    post.mockImplementation((ruta: string) =>
+      ruta === '/importaciones/duplicados'
+        ? Promise.resolve({ data: { indices: [] } })
+        : new Promise((r) => (soltar = r)),
+    );
+    const { u } = montarAsistente();
+    await extractoHastaVista(u);
+    const boton = await screen.findByRole('button', { name: m.accionImportar });
+    await u.dblClick(boton);
+    expect(post.mock.calls.filter((c) => c[0] === '/importaciones')).toHaveLength(1);
+    soltar({ data: { id: 'x', nombreArchivo: 'f', filasImportadas: 10, createdAt: '2026-11-22T00:00:00Z' } });
+    await screen.findByText(m.listo.titulo(10));
   });
 
   it('más de 2.000 filas válidas: avisa y deshabilita Importar (sin consultar duplicados)', async () => {
@@ -249,6 +315,10 @@ describe('AsistenteImportacion', () => {
     await siguiente(u);
     expect(await screen.findByText(m.vista.demasiadas)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: m.accionImportar })).toBeDisabled();
+    // no se pintan las 2.001 filas: lista acotada con aviso
+    const lista = screen.getByRole('list', { name: m.vista.lista });
+    expect(within(lista).getAllByRole('listitem').length).toBeLessThanOrEqual(200);
+    expect(screen.getByText(m.vista.limitada(200, 2001))).toBeInTheDocument();
     expect(post).not.toHaveBeenCalledWith('/importaciones/duplicados', expect.anything());
   });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorApi } from '@/lib/api/cliente';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
@@ -28,6 +28,9 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dialogoDuplicadas, setDialogoDuplicadas] = useState(false);
+  /** Origen (fila de la hoja) que el back rechazó, para resaltarla en la vista previa. */
+  const [filaConError, setFilaConError] = useState<number | null>(null);
+  const enVuelo = useRef(false);
 
   useEffect(() => {
     let activo = true;
@@ -44,7 +47,18 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
     };
   }, [api]);
 
-  const d = useMemo(() => derivar(estado, categorias), [estado, categorias]);
+  // Sólo lo que afecta a la interpretación: marcar/desmarcar filas no debe reprocesar la hoja.
+  const { hojas, hoja, encabezado, descripcion, monto, fecha, categoria, tipoLote, categoriaLoteId, signos, formatoMonto, formatoFecha } = estado;
+  const d = useMemo(
+    () =>
+      derivar(
+        { hojas, hoja, encabezado, descripcion, monto, fecha, categoria, tipoLote, categoriaLoteId, signos, formatoMonto, formatoFecha },
+        categorias,
+      ),
+    [hojas, hoja, encabezado, descripcion, monto, fecha, categoria, tipoLote, categoriaLoteId, signos, formatoMonto, formatoFecha, categorias],
+  );
+  const desmarcadas = useMemo(() => new Set(estado.desmarcadas), [estado.desmarcadas]);
+  const duplicadas = useMemo(() => new Set(estado.duplicadas), [estado.duplicadas]);
   const interpretacion = d.interpretacion;
   const hayDesconocidas = (interpretacion?.desconocidas.length ?? 0) > 0;
   const eleccion = hayDesconocidas ? estado.eleccion : 'ninguna';
@@ -60,13 +74,14 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
 
   /** Del paso 2/3 al 4/5: una sola consulta de duplicados (si el lote cabe en el límite). */
   async function irAVista() {
-    if (!interpretacion) return;
+    if (!interpretacion || enVuelo.current) return;
     setError(null);
     const filas = interpretacion.filas;
     if (filas.length === 0 || filas.length > MAX_FILAS) {
       dispatch({ tipo: 'duplicadas', origenes: [] });
       return irA('vista');
     }
+    enVuelo.current = true;
     setOcupado(true);
     try {
       const { data } = await api.POST('/importaciones/duplicados', {
@@ -81,16 +96,19 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
     } catch (e) {
       setError(mensajeDeError(e));
     } finally {
+      enVuelo.current = false;
       setOcupado(false);
     }
   }
 
   async function importar() {
-    if (!interpretacion) return;
+    if (!interpretacion || enVuelo.current) return;
     setError(null);
+    setFilaConError(null);
+    enVuelo.current = true;
     setOcupado(true);
+    const elegidas = seleccionadas(interpretacion.filas, desmarcadas, duplicadas, estado.modoDuplicadas);
     try {
-      const elegidas = seleccionadas(interpretacion.filas, estado.desmarcadas, estado.duplicadas, estado.modoDuplicadas);
       const { filas, categoriasNuevas } = resolverDesconocidas(elegidas, eleccion, d.categoriaLote);
       const { data } = await api.POST('/importaciones', {
         body: { nombreArchivo: estado.nombreArchivo, categoriasNuevas, filas },
@@ -99,8 +117,15 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
       onImportado();
     } catch (e) {
       const base = mensajeDeError(e);
-      setError(e instanceof ErrorApi && e.fila !== undefined ? m.errorImportando(e.fila + 1, base) : base);
+      const origen = e instanceof ErrorApi && e.fila !== undefined ? elegidas[e.fila]?.origen : undefined;
+      if (origen !== undefined) {
+        setFilaConError(origen);
+        setError(m.errorImportando(origen + 1, base));
+      } else if (e instanceof ErrorApi && e.fila !== undefined) {
+        setError(m.errorImportandoSinFila(e.fila + 1, base));
+      } else setError(base);
     } finally {
+      enVuelo.current = false;
       setOcupado(false);
     }
   }
@@ -140,7 +165,7 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
 
   const demasiadas = (interpretacion?.filas.length ?? 0) > MAX_FILAS;
   const elegidas = interpretacion
-    ? seleccionadas(interpretacion.filas, estado.desmarcadas, estado.duplicadas, estado.modoDuplicadas).length
+    ? seleccionadas(interpretacion.filas, desmarcadas, duplicadas, estado.modoDuplicadas).length
     : 0;
   const columnasListas =
     !!interpretacion &&
@@ -168,13 +193,14 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
         />
       )}
       {estado.paso === 'columnas' && (
-        <PasoColumnas estado={estado} derivados={d} categorias={categorias} dispatch={dispatch} />
+        <PasoColumnas estado={estado} derivados={d} categorias={categorias} dispatch={dispatch} ocupado={ocupado} />
       )}
       {estado.paso === 'categorias' && interpretacion && (
         <PasoCategorias
           desconocidas={interpretacion.desconocidas}
           eleccion={estado.eleccion}
           hayCategoriaLote={!!d.categoriaLote}
+          ocupado={ocupado}
           onEleccion={(e) => dispatch({ tipo: 'cambiar', cambios: { eleccion: e } })}
         />
       )}
@@ -186,10 +212,11 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
           resueltas={resueltasTodas}
           categorias={categorias}
           moneda={moneda}
-          duplicadas={estado.duplicadas}
+          duplicadas={duplicadas}
           modoDuplicadas={estado.modoDuplicadas}
-          desmarcadas={estado.desmarcadas}
+          desmarcadas={desmarcadas}
           demasiadas={demasiadas}
+          filaConError={filaConError}
           onAlternar={(origen) => dispatch({ tipo: 'alternar', origen })}
         />
       )}

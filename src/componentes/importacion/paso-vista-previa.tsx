@@ -11,6 +11,7 @@ import type { ModoDuplicadas } from './estado-asistente';
 
 type Categoria = components['schemas']['CategoriaRespuesta'];
 const m = mensajes.importar.vista;
+const MAX_VISIBLES = 200;
 
 const centavos = (monto: string) => Number(monto.replace('.', ''));
 const aMonto = (c: number) => `${Math.floor(c / 100)}.${String(c % 100).padStart(2, '0')}`;
@@ -18,12 +19,13 @@ const aMonto = (c: number) => `${Math.floor(c / 100)}.${String(c % 100).padStart
 /** Filas de la vista previa que se enviarían: ni desmarcadas ni omitidas por duplicadas. */
 export function seleccionadas(
   filas: FilaInterpretada[],
-  desmarcadas: number[],
-  duplicadas: number[],
+  desmarcadas: ReadonlySet<number>,
+  duplicadas: ReadonlySet<number>,
   modo: ModoDuplicadas | null,
 ): FilaInterpretada[] {
-  const omitidas = modo === 'omitir' ? duplicadas : [];
-  return filas.filter((f) => !desmarcadas.includes(f.origen) && !omitidas.includes(f.origen));
+  return filas.filter(
+    (f) => !desmarcadas.has(f.origen) && !(modo === 'omitir' && duplicadas.has(f.origen)),
+  );
 }
 
 type Props = {
@@ -34,10 +36,12 @@ type Props = {
   resueltas: FilaParaEnviar[];
   categorias: Categoria[];
   moneda: string;
-  duplicadas: number[];
+  duplicadas: ReadonlySet<number>;
   modoDuplicadas: ModoDuplicadas | null;
-  desmarcadas: number[];
+  desmarcadas: ReadonlySet<number>;
   demasiadas: boolean;
+  /** Fila de la hoja (0-based) que el back rechazó. */
+  filaConError: number | null;
   onAlternar: (origen: number) => void;
 };
 
@@ -52,13 +56,14 @@ export function PasoVistaPrevia({
   modoDuplicadas,
   desmarcadas,
   demasiadas,
+  filaConError,
   onAlternar,
 }: Props) {
-  const omitidasPorDup = modoDuplicadas === 'omitir' ? duplicadas : [];
+  const omitirDup = modoDuplicadas === 'omitir';
   const elegidas = seleccionadas(interpretacion.filas, desmarcadas, duplicadas, modoDuplicadas);
   const total = (tipo: 'gasto' | 'ingreso') =>
     aMonto(elegidas.filter((f) => f.tipo === tipo).reduce((s, f) => s + centavos(f.monto), 0));
-  const omitidas = interpretacion.excluidas.length + omitidasPorDup.length;
+  const omitidas = interpretacion.excluidas.length + (omitirDup ? duplicadas.size : 0);
 
   const etiquetaCategoria = (r: FilaParaEnviar) => {
     if (r.categoriaNueva) return m.categoriaNueva(r.categoriaNueva);
@@ -79,6 +84,10 @@ export function PasoVistaPrevia({
       }),
     ),
   ].sort((a, b) => a.origen - b.origen);
+  // Con más de 2.000 filas no se pinta todo (un celular se congelaría); la fila con error siempre se ve.
+  const visibles = demasiadas
+    ? items.filter((it, i) => i < MAX_VISIBLES || it.origen === filaConError)
+    : items;
 
   return (
     <div className="grid gap-3">
@@ -101,8 +110,11 @@ export function PasoVistaPrevia({
         <span>{m.tipo}</span>
         <span>{m.categoria}</span>
       </div>
+      {visibles.length < items.length && (
+        <p className="text-xs text-muted-foreground">{m.limitada(visibles.length, items.length)}</p>
+      )}
       <ul aria-label={m.lista} className="grid gap-2">
-        {items.map((it) => {
+        {visibles.map((it) => {
           if (it.clase === 'excluida') {
             return (
               <li key={`x${it.origen}`} className="rounded-lg border border-dashed p-2 text-sm text-muted-foreground">
@@ -112,7 +124,7 @@ export function PasoVistaPrevia({
             );
           }
           const { fila, resuelta } = it;
-          if (omitidasPorDup.includes(fila.origen)) {
+          if (omitirDup && duplicadas.has(fila.origen)) {
             return (
               <li key={fila.origen} className="rounded-lg border border-dashed p-2 text-sm text-muted-foreground">
                 <span className="line-through">{fila.descripcion}</span>
@@ -120,16 +132,19 @@ export function PasoVistaPrevia({
               </li>
             );
           }
-          const esDup = modoDuplicadas === 'revisar' && duplicadas.includes(fila.origen);
-          const marcada = !desmarcadas.includes(fila.origen);
+          const esDup = modoDuplicadas === 'revisar' && duplicadas.has(fila.origen);
+          const marcada = !desmarcadas.has(fila.origen);
+          const conError = fila.origen === filaConError;
           return (
             <li
               key={fila.origen}
               data-duplicada={esDup ? 'true' : undefined}
+              data-error={conError ? 'true' : undefined}
               className={cn(
                 'grid grid-cols-[1.5rem_1fr_auto] items-center gap-x-2 gap-y-0.5 rounded-lg border p-2 text-sm',
                 'sm:grid-cols-[1.5rem_6rem_1fr_8rem_5rem_9rem]',
                 esDup && 'border-amber-500 bg-amber-50 dark:bg-amber-950/30',
+                conError && 'border-destructive bg-destructive/10',
                 !marcada && 'text-muted-foreground',
               )}
             >

@@ -35,7 +35,23 @@ export type Derivados = {
 };
 
 /** Todo lo que se deduce del archivo, el mapeo y los formatos elegidos (sin efectos). */
-export function derivar(e: Estado, categorias: Categoria[]): Derivados {
+export type EntradaDerivar = Pick<
+  Estado,
+  | 'hojas'
+  | 'hoja'
+  | 'encabezado'
+  | 'descripcion'
+  | 'monto'
+  | 'fecha'
+  | 'categoria'
+  | 'tipoLote'
+  | 'categoriaLoteId'
+  | 'signos'
+  | 'formatoMonto'
+  | 'formatoFecha'
+>;
+
+export function derivar(e: EntradaDerivar, categorias: Categoria[]): Derivados {
   const hoja = e.hojas[e.hoja] ?? null;
   const vacio: Derivados = {
     hoja,
