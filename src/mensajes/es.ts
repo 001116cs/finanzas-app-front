@@ -81,6 +81,11 @@ export const mensajes = {
     gasto: 'Gasto',
     ingreso: 'Ingreso',
   },
+  tipoVista: {
+    etiqueta: 'Ver',
+    gasto: 'Gastos',
+    ingreso: 'Ingresos',
+  },
   periodo: {
     etiqueta: 'Período',
     este_mes: 'Este mes',
