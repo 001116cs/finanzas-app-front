@@ -29,6 +29,7 @@ export type MotivoExclusion =
   | 'monto_cero'
   | 'fecha_invalida'
   | 'sin_descripcion'
+  | 'descripcion_larga'
   | 'signo_descartado'
   | 'demasiados_decimales';
 
@@ -45,7 +46,12 @@ export type FilaInterpretada = {
   categoriaNombreArchivo: string | null;
 };
 
-export type Desconocida = { nombre: string; tipo: Tipo; cantidad: number };
+/** `nombreLargo`: supera el máximo del back; no se puede crear (§ límites del back). */
+export type Desconocida = { nombre: string; tipo: Tipo; cantidad: number; nombreLargo: boolean };
+
+/** Límites del back (Transaccion.descripcion 1..200, Categoria.nombre 1..50). */
+export const MAX_DESCRIPCION = 200;
+export const MAX_NOMBRE_CATEGORIA = 50;
 
 export type Interpretacion = {
   filas: FilaInterpretada[];
@@ -116,6 +122,10 @@ export function interpretar(hoja: Hoja, mapeo: Mapeo, categorias: CategoriaRespu
       excluir('sin_descripcion');
       continue;
     }
+    if (descripcion.length > MAX_DESCRIPCION) {
+      excluir('descripcion_larga'); // nunca truncar en silencio
+      continue;
+    }
     const cat = cCat && !esVacia(cCat) ? cCat.texto.trim() : null;
     pasos.push({ origen: i, fecha, descripcion, centavos: monto.centavos, categoria: cat || null });
   }
@@ -152,7 +162,13 @@ export function interpretar(hoja: Hoja, mapeo: Mapeo, categorias: CategoriaRespu
       else {
         const d = desconocidas.get(k);
         if (d) d.cantidad++;
-        else desconocidas.set(k, { nombre: p.categoria, tipo, cantidad: 1 });
+        else
+          desconocidas.set(k, {
+            nombre: p.categoria,
+            tipo,
+            cantidad: 1,
+            nombreLargo: p.categoria.length > MAX_NOMBRE_CATEGORIA,
+          });
       }
     } else if (loteCat && loteCat.tipo === tipo) {
       categoriaId = loteCat.id;
@@ -175,6 +191,8 @@ export function interpretar(hoja: Hoja, mapeo: Mapeo, categorias: CategoriaRespu
 /**
  * Aplica la elección única para las categorías desconocidas (§5.1 paso 3) y arma el cuerpo de
  * `POST /importaciones`. Con 'lote', la categoría del lote sólo se asigna a filas de su mismo tipo.
+ * Con 'crear', los nombres de más de `MAX_NOMBRE_CATEGORIA` no se crean: esas filas usan la
+ * categoría del lote si coincide el tipo, y si no quedan sin categoría.
  */
 export function resolverDesconocidas(
   filas: FilaInterpretada[],
@@ -186,7 +204,8 @@ export function resolverDesconocidas(
     const base = { fecha: f.fecha, descripcion: f.descripcion, monto: f.monto, tipo: f.tipo };
     const desconocida = f.categoriaId === null && f.categoriaNombreArchivo !== null;
     if (!desconocida) return { ...base, categoriaId: f.categoriaId, categoriaNueva: null };
-    if (eleccion === 'crear') {
+    const nombreLargo = f.categoriaNombreArchivo!.length > MAX_NOMBRE_CATEGORIA;
+    if (eleccion === 'crear' && !nombreLargo) {
       const k = `${f.tipo}|${clave(f.categoriaNombreArchivo!)}`;
       let nueva = nuevas.get(k);
       if (!nueva) {
@@ -195,7 +214,7 @@ export function resolverDesconocidas(
       }
       return { ...base, categoriaId: null, categoriaNueva: nueva.nombre };
     }
-    if (eleccion === 'lote' && categoriaLote && categoriaLote.tipo === f.tipo) {
+    if ((eleccion === 'lote' || eleccion === 'crear') && categoriaLote && categoriaLote.tipo === f.tipo) {
       return { ...base, categoriaId: categoriaLote.id, categoriaNueva: null };
     }
     return { ...base, categoriaId: null, categoriaNueva: null };

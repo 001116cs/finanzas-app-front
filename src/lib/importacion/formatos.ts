@@ -7,6 +7,12 @@ export type Deteccion<F> = { formato: F; ambiguo: boolean };
 
 const MAX_ENTEROS = 10;
 const MAX_CENTAVOS = 10 ** (MAX_ENTEROS + 2); // exclusivo
+const ANIO_MINIMO = 1900;
+
+/** Parte entera con separador de miles válido: primer grupo sin 0 inicial y grupos exactos de 3. */
+function milesValidos(entero: string, mil: string): boolean {
+  return new RegExp(`^[1-9]\\d{0,2}(?:\\${mil}\\d{3})+$`).test(entero);
+}
 
 /** YYYY-MM-DD con los componentes LOCALES (contrato de `Celda`: las fechas son medianoche local). */
 export function fechaLocalISO(d: Date): string {
@@ -25,6 +31,7 @@ type Limpio = { negativo: boolean; cuerpo: string };
  */
 function limpiarMonto(texto: string): Limpio | null {
   let s = texto
+    .replace(/[\u2212\u2013]/g, '-') // signo menos Unicode y guion medio usado como menos
     .replace(/S\/\.?/gi, '')
     .replace(/US\$/gi, '')
     .replace(/[$€]/g, '')
@@ -78,9 +85,8 @@ function montoDeTexto(texto: string, f: FormatoMonto): ResultadoMonto {
   if (fraccion.includes(mil)) return INVALIDO;
   let entero = enteroConMiles;
   if (entero.includes(mil)) {
-    // Separador de miles: grupos exactos de 3; si no, no adivinamos.
-    const grupos = new RegExp(`^\\d{1,3}(?:\\${mil}\\d{3})+$`);
-    if (!grupos.test(entero)) return INVALIDO;
+    // Separador de miles: grupos exactos de 3 y sin 0 inicial ('0.500' no es 500); si no, no adivinamos.
+    if (!milesValidos(entero, mil)) return INVALIDO;
     entero = entero.split(mil).join('');
   }
   if (!/^\d+$/.test(entero) || !/^\d*$/.test(fraccion)) return INVALIDO;
@@ -118,16 +124,24 @@ export function detectarFormatoMonto(celdas: Celda[]): Deteccion<FormatoMonto> {
     const iComa = s.lastIndexOf(',');
     const iPunto = s.lastIndexOf('.');
     if (iComa >= 0 && iPunto >= 0) {
-      if (iComa > iPunto) coma++;
-      else punto++;
+      // El último es el decimal, pero sólo cuenta si lo anterior es un número con miles válidos.
+      const [dec, mil] = iComa > iPunto ? [',', '.'] : ['.', ','];
+      const entero = s.slice(0, s.lastIndexOf(dec));
+      if (!entero.includes(dec) && milesValidos(entero, mil)) {
+        if (dec === ',') coma++;
+        else punto++;
+      }
       continue;
     }
     const sep = iComa >= 0 ? ',' : iPunto >= 0 ? '.' : null;
     if (!sep) continue;
     const veces = s.split(sep).length - 1;
     if (veces > 1) {
-      if (sep === ',') punto++;
-      else coma++;
+      // Repetido ⇒ de miles, sólo si los grupos son válidos ('0.500.000' no es evidencia).
+      if (milesValidos(s, sep)) {
+        if (sep === ',') punto++;
+        else coma++;
+      }
       continue;
     }
     const despues = s.length - s.indexOf(sep) - 1;
@@ -150,6 +164,7 @@ const ISO = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
 const DMA = /^(\d{1,2})([/-])(\d{1,2})\2(\d{2}|\d{4})$/;
 
 function fechaValida(a: number, m: number, d: number): string | null {
+  if (a < ANIO_MINIMO) return null;
   const f = new Date(Date.UTC(a, m - 1, d));
   if (f.getUTCFullYear() !== a || f.getUTCMonth() !== m - 1 || f.getUTCDate() !== d) return null;
   const p = (n: number) => String(n).padStart(2, '0');
@@ -158,7 +173,10 @@ function fechaValida(a: number, m: number, d: number): string | null {
 
 /** YYYY-MM-DD, o null si la celda no es una fecha real. */
 export function leerFecha(c: Celda, f: FormatoFecha): string | null {
-  if (c.valor instanceof Date) return Number.isNaN(c.valor.getTime()) ? null : fechaLocalISO(c.valor);
+  if (c.valor instanceof Date) {
+    if (Number.isNaN(c.valor.getTime()) || c.valor.getFullYear() < ANIO_MINIMO) return null;
+    return fechaLocalISO(c.valor);
+  }
   if (typeof c.valor !== 'string') return null;
   const s = c.valor.trim();
   const iso = ISO.exec(s);

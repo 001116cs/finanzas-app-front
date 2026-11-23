@@ -34,6 +34,10 @@ describe('leerMonto', () => {
     ['12,340', 'coma_decimal', 1234], // ceros finales no son decimales significativos
     ['0', 'coma_decimal', 0],
     ['1234567890', 'coma_decimal', 123456789000],
+    ['−45,00', 'coma_decimal', -4500], // signo menos Unicode U+2212
+    ['–45,00', 'coma_decimal', -4500], // guion medio usado como menos
+    ['45,00−', 'coma_decimal', -4500],
+    ['0,500', 'coma_decimal', 50],
   ] as const)('%s (%s) ⇒ %d', (s, f, esperado) => {
     expect(leerMonto(t(s), f)).toBe(esperado);
   });
@@ -52,6 +56,14 @@ describe('leerMonto', () => {
     ['(-45)', 'coma_decimal'],
   ] as const)('%s (%s) ⇒ null', (s, f) => {
     expect(leerMonto(t(s), f)).toBeNull();
+  });
+
+  it('grupo de miles con 0 inicial ⇒ monto_invalido (no leer 1000× más)', () => {
+    expect(analizarMonto(t('0.500'), 'coma_decimal')).toEqual({ motivo: 'monto_invalido' });
+    expect(analizarMonto(t('0,001'), 'punto_decimal')).toEqual({ motivo: 'monto_invalido' });
+    expect(analizarMonto(t('0.500.000'), 'coma_decimal')).toEqual({ motivo: 'monto_invalido' });
+    expect(analizarMonto(t('012.500'), 'coma_decimal')).toEqual({ motivo: 'monto_invalido' });
+    expect(analizarMonto(t('0.500,00'), 'coma_decimal')).toEqual({ motivo: 'monto_invalido' });
   });
 
   it('motivos: demasiados_decimales vs monto_invalido', () => {
@@ -111,6 +123,18 @@ describe('detectarFormatoMonto', () => {
     expect(detectarFormatoMonto([t('-45,00'), t('S/ 3.500,00')])).toEqual({ formato: 'coma_decimal', ambiguo: false });
     expect(detectarFormatoMonto([t('(1,250.5)')])).toEqual({ formato: 'punto_decimal', ambiguo: false });
   });
+  it('grupos de miles inválidos no son evidencia decisiva', () => {
+    expect(detectarFormatoMonto([t('0.500.000')])).toEqual({ formato: 'coma_decimal', ambiguo: false });
+    expect(detectarFormatoMonto([t('0,500,000')])).toEqual({ formato: 'coma_decimal', ambiguo: false });
+    expect(detectarFormatoMonto([t('0,001.50')])).toEqual({ formato: 'coma_decimal', ambiguo: false });
+    expect(detectarFormatoMonto([t('12.34.567')])).toEqual({ formato: 'coma_decimal', ambiguo: false });
+    expect(detectarFormatoMonto([t('0.500,00'), t('1,5')])).toEqual({ formato: 'coma_decimal', ambiguo: false });
+    // '0,500,000' no cuenta como punto decimal, así que no contradice a '45,50'
+    expect(detectarFormatoMonto([t('45,50'), t('0,500,000')])).toEqual({ formato: 'coma_decimal', ambiguo: false });
+  });
+  it('signo menos Unicode no impide la detección', () => {
+    expect(detectarFormatoMonto([t('−480.00')])).toEqual({ formato: 'punto_decimal', ambiguo: false });
+  });
   it('evidencias contradictorias ⇒ ambiguo', () => {
     expect(detectarFormatoMonto([t('45,50'), t('480.00')]).ambiguo).toBe(true);
   });
@@ -150,6 +174,7 @@ describe('leerFecha', () => {
     ['2026-10-05', 'mes_primero', '2026-10-05'],
     [' 2026-1-5 ', 'dia_primero', '2026-01-05'],
     ['29/02/2028', 'dia_primero', '2028-02-29'],
+    ['1900-01-01', 'dia_primero', '1900-01-01'],
   ] as const)('%s (%s) ⇒ %s', (s, f, esperado) => {
     expect(leerFecha(t(s), f)).toBe(esperado);
   });
@@ -163,6 +188,8 @@ describe('leerFecha', () => {
     ['ayer', 'dia_primero'],
     ['', 'dia_primero'],
     ['02/11/202', 'dia_primero'],
+    ['0026-11-02', 'dia_primero'], // año < 1900
+    ['1899-12-31', 'dia_primero'],
   ] as const)('%s (%s) ⇒ null', (s, f) => {
     expect(leerFecha(t(s), f)).toBeNull();
   });
@@ -170,6 +197,12 @@ describe('leerFecha', () => {
   it('celda Date ⇒ día local, sin importar el formato', () => {
     expect(leerFecha(d(2026, 11, 1), 'mes_primero')).toBe('2026-11-01');
     expect(leerFecha(d(2026, 1, 31), 'dia_primero')).toBe('2026-01-31');
+  });
+
+  it('celda Date con año < 1900 ⇒ null', () => {
+    const viejo = new Date(2000, 0, 1);
+    viejo.setFullYear(26);
+    expect(leerFecha({ valor: viejo, texto: '' }, 'dia_primero')).toBeNull();
   });
 
   it('número, vacía o Date inválida ⇒ null', () => {

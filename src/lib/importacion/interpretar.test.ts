@@ -255,18 +255,38 @@ describe('interpretar: reglas', () => {
       ['01/11/2026', '   ', '5', null],
       [null, 'Total del mes', '99', null],
       ['05/11/2026', 'Subtotal con fecha válida', '7', null],
+      ['06/11/2026', 'x'.repeat(201), '5', null],
+      ['06/11/2026', '  ' + 'y'.repeat(200) + '  ', '5', null],
+      ['01/11/2026', 'monto con 0 inicial', '0.500', null],
+      [null, 'año viejo', '5', null],
       ['01/11/2026', 'vacío', '', null],
+      ['01/11/1899', 'año < 1900', '5', null],
     ]);
     const r = interpretar(hoja, mapeo, []);
-    expect(r.filas.map((f) => f.origen)).toEqual([1, 8]);
+    expect(r.filas.map((f) => f.origen)).toEqual([1, 8, 10]);
+    expect(r.filas[2].descripcion).toBe('y'.repeat(200));
     expect(r.excluidas).toEqual([
       { fila: 3, motivo: 'demasiados_decimales' },
       { fila: 4, motivo: 'fecha_invalida' },
       { fila: 5, motivo: 'fecha_invalida' },
       { fila: 6, motivo: 'sin_descripcion' },
       { fila: 7, motivo: 'total' },
-      { fila: 9, motivo: 'monto_invalido' },
+      { fila: 9, motivo: 'descripcion_larga' },
+      { fila: 11, motivo: 'monto_invalido' },
+      { fila: 12, motivo: 'fecha_invalida' },
+      { fila: 13, motivo: 'monto_invalido' },
+      { fila: 14, motivo: 'fecha_invalida' },
     ]);
+  });
+
+  it('"total" en la descripción con fecha válida se conserva', () => {
+    const hoja = hojaTexto([
+      ['Fecha', 'Desc', 'Monto'],
+      ['01/11/2026', 'Totalplay internet', '89,90'],
+    ]);
+    const r = interpretar(hoja, mapeo, []);
+    expect(r.excluidas).toEqual([]);
+    expect(r.filas.map((f) => [f.descripcion, f.monto])).toEqual([['Totalplay internet', '89.90']]);
   });
 
   it('fórmula SUM en el monto ⇒ total aunque tenga fecha', () => {
@@ -352,8 +372,8 @@ describe('interpretar: categorías', () => {
       ['Sin cat ingreso', null, null],
     ]);
     expect(r.desconocidas).toEqual([
-      { nombre: 'Mascotas', tipo: 'gasto', cantidad: 2 },
-      { nombre: 'Comida', tipo: 'ingreso', cantidad: 1 },
+      { nombre: 'Mascotas', tipo: 'gasto', cantidad: 2, nombreLargo: false },
+      { nombre: 'Comida', tipo: 'ingreso', cantidad: 1, nombreLargo: false },
     ]);
   });
 
@@ -401,7 +421,7 @@ describe('interpretar: categorías', () => {
       ['Croquetas', '20', 'Mascotas'],
     ]);
     const r = interpretar(h, { ...mapeo, signos: undefined }, CATEGORIAS);
-    expect(r.desconocidas).toEqual([{ nombre: 'Mascotas', tipo: 'gasto', cantidad: 1 }]);
+    expect(r.desconocidas).toEqual([{ nombre: 'Mascotas', tipo: 'gasto', cantidad: 1, nombreLargo: false }]);
     const res = resolverDesconocidas(r.filas, 'crear');
     expect(res.categoriasNuevas).toEqual([{ nombre: 'Mascotas', tipo: 'gasto' }]);
     expect(res.filas[1].categoriaNueva).toBe('Mascotas');
@@ -421,5 +441,39 @@ describe('interpretar: categorías', () => {
     const { filas, categoriasNuevas } = resolverDesconocidas(r.filas, 'ninguna');
     expect(categoriasNuevas).toEqual([]);
     expect(filas.map((f) => f.categoriaId)).toEqual(['c-comida', null, null, null, null, 'c-sueldo', null]);
+  });
+
+  describe('nombres de categoría de más de 50 caracteres', () => {
+    const largo = 'C'.repeat(51);
+    const h = hojaTexto([
+      ['Desc', 'Monto', 'Cat'],
+      ['Gasto largo', '-10', `  ${largo}  `],
+      ['Gasto largo 2', '-11', largo.toLowerCase()],
+      ['Ingreso largo', '20', largo],
+      ['Justo 50', '-5', 'D'.repeat(50)],
+    ]);
+
+    it('aparecen en desconocidas marcadas con nombreLargo', () => {
+      const r = interpretar(h, mapeo, CATEGORIAS);
+      expect(r.desconocidas).toEqual([
+        { nombre: largo, tipo: 'gasto', cantidad: 2, nombreLargo: true },
+        { nombre: largo, tipo: 'ingreso', cantidad: 1, nombreLargo: true },
+        { nombre: 'D'.repeat(50), tipo: 'gasto', cantidad: 1, nombreLargo: false },
+      ]);
+    });
+
+    it('"crear" no las crea: categoría del lote si coincide el tipo, si no sin categoría', () => {
+      const r = interpretar(h, mapeo, CATEGORIAS);
+      const res = resolverDesconocidas(r.filas, 'crear', { id: 'c-salud', tipo: 'gasto' });
+      expect(res.categoriasNuevas).toEqual([{ nombre: 'D'.repeat(50), tipo: 'gasto' }]);
+      expect(res.filas.map((f) => [f.categoriaId, f.categoriaNueva])).toEqual([
+        ['c-salud', null],
+        ['c-salud', null],
+        [null, null],
+        [null, 'D'.repeat(50)],
+      ]);
+      const sinLote = resolverDesconocidas(r.filas, 'crear');
+      expect(sinLote.filas.slice(0, 3).every((f) => f.categoriaId === null && f.categoriaNueva === null)).toBe(true);
+    });
   });
 });
