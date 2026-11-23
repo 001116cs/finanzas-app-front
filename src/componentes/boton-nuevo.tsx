@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import type { components } from '@/lib/api/esquema';
+import type { TipoVista } from '@/lib/tipo-vista';
 import { mensajes } from '@/mensajes/es';
 import { FormularioMovimiento } from './formulario-movimiento';
 
@@ -31,18 +32,27 @@ type PanelProps = {
   onAbiertoChange: (a: boolean) => void;
   categorias: Categoria[];
   inicial?: Transaccion;
+  tipoInicial?: TipoVista;
   onGuardado: () => void;
 };
 
 /** Formulario en Sheet (celular, sube desde abajo) o Dialog (escritorio). */
-export function PanelMovimiento({ abierto, onAbiertoChange, categorias, inicial, onGuardado }: PanelProps) {
+export function PanelMovimiento({
+  abierto,
+  onAbiertoChange,
+  categorias,
+  inicial,
+  tipoInicial,
+  onGuardado,
+}: PanelProps) {
   const escritorio = useEsEscritorio();
   const titulo = inicial ? mensajes.dashboard.editarMovimiento : mensajes.dashboard.nuevo;
   const formulario = (
     <FormularioMovimiento
-      key={inicial?.id ?? 'nuevo'}
+      key={inicial?.id ?? `nuevo-${tipoInicial ?? 'gasto'}`}
       categorias={categorias}
       inicial={inicial}
+      tipoInicial={tipoInicial}
       onGuardado={() => {
         onAbiertoChange(false);
         onGuardado();
@@ -73,7 +83,15 @@ export function PanelMovimiento({ abierto, onAbiertoChange, categorias, inicial,
   );
 }
 
-export function BotonNuevo({ categorias, onGuardado }: { categorias: Categoria[]; onGuardado: () => void }) {
+export function BotonNuevo({
+  categorias,
+  tipoInicial,
+  onGuardado,
+}: {
+  categorias: Categoria[];
+  tipoInicial: TipoVista;
+  onGuardado: () => void;
+}) {
   const [abierto, setAbierto] = useState(false);
   return (
     <>
@@ -89,6 +107,7 @@ export function BotonNuevo({ categorias, onGuardado }: { categorias: Categoria[]
         abierto={abierto}
         onAbiertoChange={setAbierto}
         categorias={categorias}
+        tipoInicial={tipoInicial}
         onGuardado={onGuardado}
       />
     </>

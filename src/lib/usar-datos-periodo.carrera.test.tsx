@@ -29,11 +29,12 @@ vi.mock('@/lib/api/cliente', async (orig) => ({
 }));
 
 import type { Periodo } from './periodos';
+import type { TipoVista } from './tipo-vista';
 import { useDatosPeriodo } from './usar-datos-periodo';
 
 describe('useDatosPeriodo: cargarMas obsoleto', () => {
   it('descarta la página 2 si el período cambió antes de que responda', async () => {
-    const { result, rerender } = renderHook(({ p }: { p: Periodo }) => useDatosPeriodo(p), {
+    const { result, rerender } = renderHook(({ p }: { p: Periodo }) => useDatosPeriodo(p, 'gasto'), {
       initialProps: { p: { clave: 'este_mes' } as Periodo },
     });
     await waitFor(() => expect(result.current.resumen).not.toBeNull());
@@ -49,7 +50,7 @@ describe('useDatosPeriodo: cargarMas obsoleto', () => {
 
   it('refrescar durante cargarMas pendiente descarta el resultado y limpia cargandoMas', async () => {
     pendiente = null;
-    const { result } = renderHook(() => useDatosPeriodo({ clave: 'este_mes' }));
+    const { result } = renderHook(() => useDatosPeriodo({ clave: 'este_mes' }, 'gasto'));
     await waitFor(() => expect(result.current.resumen).not.toBeNull());
     act(() => { void result.current.cargarMas(); });
     await waitFor(() => expect(pendiente).not.toBeNull());
@@ -57,6 +58,27 @@ describe('useDatosPeriodo: cargarMas obsoleto', () => {
     act(() => result.current.refrescar());
     await waitFor(() => expect(result.current.cargando).toBe(false));
     await act(async () => { pendiente!({ data: { items: [tx('viejo-p2')], total: 99 } }); });
+    expect(result.current.items.map((i) => i.id)).toEqual(['p1-2026-11-01']);
+    expect(result.current.cargandoMas).toBe(false);
+  });
+
+  it('descarta la página 2 si el tipo cambió antes de que responda', async () => {
+    pendiente = null;
+    const { result, rerender } = renderHook(
+      ({ t }: { t: TipoVista }) => useDatosPeriodo({ clave: 'este_mes' }, t),
+      { initialProps: { t: 'gasto' as TipoVista } },
+    );
+    await waitFor(() => expect(result.current.resumen).not.toBeNull());
+    act(() => { void result.current.cargarMas(); });
+    await waitFor(() => expect(pendiente).not.toBeNull());
+    rerender({ t: 'ingreso' });
+    await waitFor(() =>
+      expect(get).toHaveBeenLastCalledWith('/transacciones', expect.objectContaining({
+        params: { query: expect.objectContaining({ tipo: 'ingreso', pagina: 1 }) },
+      })),
+    );
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    await act(async () => { pendiente!({ data: { items: [tx('gasto-viejo-p2')], total: 99 } }); });
     expect(result.current.items.map((i) => i.id)).toEqual(['p1-2026-11-01']);
     expect(result.current.cargandoMas).toBe(false);
   });

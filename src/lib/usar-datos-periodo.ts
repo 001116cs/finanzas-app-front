@@ -5,6 +5,7 @@ import type { components } from '@/lib/api/esquema';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
 import { mensajes } from '@/mensajes/es';
 import { periodoAParams, type Periodo } from '@/lib/periodos';
+import type { TipoVista } from '@/lib/tipo-vista';
 
 type Resumen = components['schemas']['ResumenRespuesta'];
 type Transaccion = components['schemas']['TransaccionRespuesta'];
@@ -16,7 +17,7 @@ const TAMANO = 20;
  * Carga /resumen con los parámetros del período y usa el desde/hasta que
  * devuelve para listar /transacciones, así totales y lista cubren el mismo rango.
  */
-export function useDatosPeriodo(periodo: Periodo) {
+export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista) {
   const api = useApi();
   const [resumen, setResumen] = useState<Resumen | null>(null);
   const [items, setItems] = useState<Transaccion[]>([]);
@@ -26,7 +27,8 @@ export function useDatosPeriodo(periodo: Periodo) {
   const [cargandoMas, setCargandoMas] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
-  const clave = JSON.stringify(periodo);
+  // El tipo va en la clave: cambiarlo recarga y descarta un "cargar más" pendiente.
+  const clave = JSON.stringify({ periodo, tipo });
   const generacion = useRef(0);
 
   useEffect(() => {
@@ -37,13 +39,13 @@ export function useDatosPeriodo(periodo: Periodo) {
       setCargandoMas(false);
       setError(null);
       try {
-        const p = JSON.parse(clave) as Periodo;
+        const { periodo: p, tipo: t } = JSON.parse(clave) as { periodo: Periodo; tipo: TipoVista };
         const { data: r } = await api.GET('/resumen', {
           params: { query: periodoAParams(p) },
         });
         if (!r) throw new Error('sin datos');
         const { data: l } = await api.GET('/transacciones', {
-          params: { query: { desde: r.desde, hasta: r.hasta, pagina: 1, tamano: TAMANO } },
+          params: { query: { desde: r.desde, hasta: r.hasta, tipo: t, pagina: 1, tamano: TAMANO } },
         });
         if (!l) throw new Error('sin datos');
         if (!activo) return;
@@ -69,7 +71,7 @@ export function useDatosPeriodo(periodo: Periodo) {
     try {
       const { data: l } = await api.GET('/transacciones', {
         params: {
-          query: { desde: resumen.desde, hasta: resumen.hasta, pagina: pagina + 1, tamano: TAMANO },
+          query: { desde: resumen.desde, hasta: resumen.hasta, tipo, pagina: pagina + 1, tamano: TAMANO },
         },
       });
       if (miGeneracion !== generacion.current) return;
@@ -83,7 +85,7 @@ export function useDatosPeriodo(periodo: Periodo) {
     } finally {
       if (miGeneracion === generacion.current) setCargandoMas(false);
     }
-  }, [api, resumen, pagina]);
+  }, [api, resumen, pagina, tipo]);
 
   const refrescar = useCallback(() => setVersion((v) => v + 1), []);
 

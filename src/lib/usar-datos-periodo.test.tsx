@@ -20,11 +20,20 @@ import { useDatosPeriodo } from './usar-datos-periodo';
 
 describe('useDatosPeriodo', () => {
   it('lista transacciones con el desde/hasta que devolvió /resumen', async () => {
-    const { result } = renderHook(() => useDatosPeriodo({ clave: 'este_mes' }));
+    const { result } = renderHook(() => useDatosPeriodo({ clave: 'este_mes' }, 'gasto'));
     await waitFor(() => expect(result.current.resumen).not.toBeNull());
     expect(get).toHaveBeenCalledWith('/resumen', { params: { query: {} } });
     expect(get).toHaveBeenCalledWith('/transacciones', {
-      params: { query: { desde: '2026-11-01', hasta: '2026-11-30', pagina: 1, tamano: 20 } },
+      params: { query: { desde: '2026-11-01', hasta: '2026-11-30', tipo: 'gasto', pagina: 1, tamano: 20 } },
+    });
+  });
+
+  it('filtra la lista por el tipo elegido', async () => {
+    get.mockClear();
+    const { result } = renderHook(() => useDatosPeriodo({ clave: 'este_mes' }, 'ingreso'));
+    await waitFor(() => expect(result.current.resumen).not.toBeNull());
+    expect(get).toHaveBeenCalledWith('/transacciones', {
+      params: { query: { desde: '2026-11-01', hasta: '2026-11-30', tipo: 'ingreso', pagina: 1, tamano: 20 } },
     });
   });
 });

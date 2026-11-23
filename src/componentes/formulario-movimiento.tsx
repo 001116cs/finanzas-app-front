@@ -26,14 +26,16 @@ type Tipo = 'gasto' | 'ingreso';
 type Props = {
   categorias: Categoria[];
   inicial?: Transaccion;
+  /** Tipo con el que arranca un movimiento nuevo (al editar manda el del movimiento). */
+  tipoInicial?: Tipo;
   onGuardado: () => void;
 };
 
 const selectClase = 'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm';
 
-export function FormularioMovimiento({ categorias, inicial, onGuardado }: Props) {
+export function FormularioMovimiento({ categorias, inicial, tipoInicial, onGuardado }: Props) {
   const api = useApi();
-  const [tipo, setTipo] = useState<Tipo>(inicial?.tipo ?? 'gasto');
+  const [tipo, setTipo] = useState<Tipo>(inicial?.tipo ?? tipoInicial ?? 'gasto');
   const [monto, setMonto] = useState(inicial?.monto ?? '');
   const [fecha, setFecha] = useState(inicial?.fecha ?? hoyISO());
   const [descripcion, setDescripcion] = useState(inicial?.descripcion ?? '');

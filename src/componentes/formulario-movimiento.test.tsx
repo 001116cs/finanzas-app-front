@@ -158,4 +158,21 @@ describe('FormularioMovimiento', () => {
       expect(screen.queryByRole('button', { name: mensajes.acciones.eliminar })).toBeNull();
     });
   });
+
+  it('sin movimiento previo empieza con el tipo indicado por tipoInicial', () => {
+    render(<FormularioMovimiento categorias={categorias} tipoInicial="ingreso" onGuardado={vi.fn()} />);
+    expect(screen.getByLabelText(mensajes.movimiento.tipo)).toHaveValue('ingreso');
+  });
+
+  it('al editar usa el tipo del movimiento aunque tipoInicial diga otro', () => {
+    const existente = {
+      id: 'x1', tipo: 'gasto' as const, monto: '5.00', fecha: '2026-11-10', descripcion: 'pan',
+      categoriaId: 'g1', categoriaNombre: 'Comida', origen: 'manual' as const, createdAt: '2026-11-10T00:00:00Z',
+    };
+    render(
+      <FormularioMovimiento categorias={categorias} inicial={existente} tipoInicial="ingreso" onGuardado={vi.fn()} />,
+    );
+    expect(screen.getByLabelText(mensajes.movimiento.tipo)).toHaveValue('gasto');
+  });
 });
+
