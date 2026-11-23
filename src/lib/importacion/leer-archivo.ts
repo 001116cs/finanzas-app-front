@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { fechaLocalISO } from './formatos';
 import type { Celda, Hoja } from './tipos';
 
 const SEPARADORES = [',', ';', '\t'] as const;
@@ -57,7 +58,7 @@ function aCelda(c: XLSX.CellObject | undefined): Celda {
   if (c.v instanceof Date) valor = aFechaLocal(c.v);
   else if (typeof c.v === 'number' || typeof c.v === 'string') valor = c.v;
   else valor = String(c.v); // booleanos y errores como texto
-  const texto = c.w ?? (valor instanceof Date ? valor.toISOString() : String(valor));
+  const texto = c.w ?? (valor instanceof Date ? fechaLocalISO(valor) : String(valor));
   const celda: Celda = { valor, texto };
   if (c.f) celda.formula = c.f;
   return celda;

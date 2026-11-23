@@ -1,4 +1,4 @@
-import type { Celda, Mapeo } from './tipos';
+import type { Celda, PropuestaMapeo } from './tipos';
 
 const MAX_FILAS_ENCABEZADO = 20;
 
@@ -16,7 +16,7 @@ export function detectarEncabezado(filas: Celda[][]): number {
   return 0;
 }
 
-const PALABRAS: Record<keyof Mapeo, string[]> = {
+const PALABRAS: Record<keyof PropuestaMapeo, string[]> = {
   fecha: ['fecha', 'date', 'dia', 'day'],
   descripcion: ['descripcion', 'concepto', 'detalle', 'description', 'glosa'],
   monto: ['monto', 'importe', 'amount', 'valor'],
@@ -30,9 +30,9 @@ const normalizar = (s: string) =>
     .toLowerCase();
 
 /** Propuesta heurística de mapeo por nombre de columna (§5.9). */
-export function proponerMapeo(encabezados: string[]): Mapeo {
+export function proponerMapeo(encabezados: string[]): PropuestaMapeo {
   const palabras = encabezados.map((e) => normalizar(e).split(/[^a-z0-9]+/).filter(Boolean));
-  const mapeo: Mapeo = {};
+  const mapeo: PropuestaMapeo = {};
   const usadas = new Set<number>();
   for (const campo of ['fecha', 'monto', 'descripcion', 'categoria'] as const) {
     const idx = palabras.findIndex((p, i) => !usadas.has(i) && p.some((w) => PALABRAS[campo].includes(w)));
