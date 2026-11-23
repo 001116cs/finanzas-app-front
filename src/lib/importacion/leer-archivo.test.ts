@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { detectarEncabezado } from './encabezado';
+import { detectarFormatoFecha, detectarFormatoMonto, leerFecha, leerMonto } from './formatos';
 import { leerArchivo } from './leer-archivo';
 
 function fixture(nombre: string): ArrayBuffer {
@@ -56,5 +57,61 @@ describe('leerArchivo', () => {
       const [h] = leerArchivo(fixture(n), n);
       expect(detectarEncabezado(h.filas)).toBe(0);
     }
+  });
+
+  it('.xls que en realidad es una tabla HTML: las celdas quedan como texto y se interpretan con el formato', () => {
+    const html =
+      '<html><body><table>' +
+      '<tr><th>Fecha</th><th>Descripción</th><th>Monto</th></tr>' +
+      '<tr><td>02/11/2026</td><td>Café</td><td>-45,00</td></tr>' +
+      '<tr><td>15/11/2026</td><td>Alquiler</td><td>1.250</td></tr>' +
+      '</table></body></html>';
+    const datos = new TextEncoder().encode(html).buffer as ArrayBuffer;
+    const [h] = leerArchivo(datos, 'extracto.xls');
+    expect(h.filas[1][2].valor).toBe('-45,00');
+    expect(h.filas[2][2].valor).toBe('1.250');
+    expect(h.filas[1][0].valor).toBe('02/11/2026');
+    expect(h.filas[2][0].valor).toBe('15/11/2026');
+    const montos = h.filas.slice(1).map((f) => f[2]);
+    const fechas = h.filas.slice(1).map((f) => f[0]);
+    const fm = detectarFormatoMonto(montos);
+    const ff = detectarFormatoFecha(fechas);
+    expect(leerMonto(montos[0], fm.formato)).toBe(-4500);
+    expect(leerMonto(montos[1], 'coma_decimal')).toBe(125000);
+    expect(leerFecha(fechas[0], ff.formato)).toBe('2026-11-02');
+  });
+
+  it('CSV en Windows-1252 se decodifica sin caracteres de reemplazo', () => {
+    const bytes = Uint8Array.from(
+      [...'Descripción;Monto\nPeñaranda;10,00\n'].map((ch) => ch.charCodeAt(0)),
+    );
+    const [h] = leerArchivo(bytes.buffer as ArrayBuffer, 'x.csv');
+    expect(h.filas[0][0].texto).toBe('Descripción');
+    expect(h.filas[1][0].texto).toBe('Peñaranda');
+  });
+
+  it('CSV en UTF-16LE con BOM', () => {
+    const txt = 'Descripción,Monto\nPeñaranda,10.00\n';
+    const b = new Uint8Array(2 + txt.length * 2);
+    b[0] = 0xff;
+    b[1] = 0xfe;
+    for (let i = 0; i < txt.length; i++) {
+      b[2 + i * 2] = txt.charCodeAt(i) & 0xff;
+      b[3 + i * 2] = txt.charCodeAt(i) >> 8;
+    }
+    const [h] = leerArchivo(b.buffer as ArrayBuffer, 'x.csv');
+    expect(h.filas[0].map((c) => c.texto)).toEqual(['Descripción', 'Monto']);
+    expect(h.filas[1][0].texto).toBe('Peñaranda');
+    expect(h.filas[1][1].texto).toBe('10.00');
+  });
+
+  it('CSV en UTF-16BE con BOM', () => {
+    const txt = 'a,b\n1,2\n';
+    const b = new Uint8Array(2 + txt.length * 2);
+    b[0] = 0xfe;
+    b[1] = 0xff;
+    for (let i = 0; i < txt.length; i++) b[3 + i * 2] = txt.charCodeAt(i);
+    const [h] = leerArchivo(b.buffer as ArrayBuffer, 'x.csv');
+    expect(h.filas[1].map((c) => c.texto)).toEqual(['1', '2']);
   });
 });

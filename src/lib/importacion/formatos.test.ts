@@ -218,3 +218,29 @@ describe('fechaLocalISO', () => {
     expect(fechaLocalISO(new Date(2026, 0, 1, 23, 59))).toBe('2026-01-01');
   });
 });
+
+describe('moneda con lista blanca', () => {
+  it.each(['45,00 DEB', '100,00 CRE', 'DEB 45,00', '45,00 XYZ'])('%s ⇒ monto_invalido', (s) => {
+    expect(analizarMonto(t(s), 'coma_decimal')).toEqual({ motivo: 'monto_invalido' });
+  });
+  it.each([
+    ['45,00 PEN', 4500],
+    ['EUR 45,00', 4500],
+    ['100,00 usd', 10000],
+  ] as const)('%s ⇒ %s', (s, c) => {
+    expect(leerMonto(t(s), 'coma_decimal')).toBe(c);
+  });
+});
+
+describe('años de dos dígitos con pivote', () => {
+  const hoy = new Date(2026, 10, 22);
+  it.each([
+    ['15/03/99', '1999-03-15'],
+    ['15/03/26', '2026-03-15'],
+    ['15/03/27', '2027-03-15'],
+    ['15/03/28', '1928-03-15'],
+    ['15/03/05', '2005-03-15'],
+  ] as const)('%s ⇒ %s', (s, esperado) => {
+    expect(leerFecha(t(s), 'dia_primero', hoy)).toBe(esperado);
+  });
+});

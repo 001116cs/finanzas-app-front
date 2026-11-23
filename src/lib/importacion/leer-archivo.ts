@@ -78,15 +78,38 @@ function hojaAFilas(ws: XLSX.WorkSheet): Celda[][] {
   return filas;
 }
 
+/** UTF-16 por BOM; UTF-8 estricto; si no es UTF-8 válido, Windows-1252 (CSV de Excel en español). */
+function decodificar(datos: ArrayBuffer): string {
+  const b = new Uint8Array(datos);
+  let texto: string;
+  if (b[0] === 0xff && b[1] === 0xfe) texto = new TextDecoder('utf-16le').decode(b.subarray(2));
+  else if (b[0] === 0xfe && b[1] === 0xff) texto = new TextDecoder('utf-16be').decode(b.subarray(2));
+  else {
+    try {
+      texto = new TextDecoder('utf-8', { fatal: true }).decode(b);
+    } catch {
+      texto = new TextDecoder('windows-1252').decode(b);
+    }
+  }
+  return texto.charCodeAt(0) === 0xfeff ? texto.slice(1) : texto;
+}
+
 export function leerArchivo(datos: ArrayBuffer, nombre: string): Hoja[] {
   let libro: XLSX.WorkBook;
   if (esCsv(nombre)) {
-    let texto = new TextDecoder('utf-8').decode(datos);
-    if (texto.charCodeAt(0) === 0xfeff) texto = texto.slice(1);
+    const texto = decodificar(datos);
     // raw: true deja todo como texto tal cual viene en el archivo.
     libro = XLSX.read(texto, { type: 'string', raw: true, FS: detectarSeparador(texto) });
   } else {
-    libro = XLSX.read(new Uint8Array(datos), { type: 'array', cellDates: true, cellFormula: true, sheetStubs: true });
+    libro = XLSX.read(new Uint8Array(datos), {
+      type: 'array',
+      // raw: un .xls que en realidad es HTML o texto tabulado (típico de bancos) queda como texto
+      // para que el formato elegido por el usuario mande; los xlsx reales conservan sus celdas tipadas.
+      raw: true,
+      cellDates: true,
+      cellFormula: true,
+      sheetStubs: true,
+    });
   }
   return libro.SheetNames.map((n) => ({ nombre: n, filas: hojaAFilas(libro.Sheets[n]) }));
 }

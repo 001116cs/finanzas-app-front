@@ -22,10 +22,13 @@ export function fechaLocalISO(d: Date): string {
 
 // ---------------------------------------------------------------- Montos
 
+/** Códigos de moneda que se ignoran; cualquier otra letra (p. ej. DEB/CRE) invalida el monto. */
+const MONEDAS = /(?<![A-Za-z])(?:PEN|USD|EUR|MXN|COP|CLP|ARS|BOB|BRL|GBP)(?![A-Za-z])/gi;
+
 type Limpio = { negativo: boolean; cuerpo: string };
 
 /**
- * Quita moneda (`S/`, `S/.`, `US$`, `$`, `€`, códigos ISO de 3 letras), espacios y `+`;
+ * Quita moneda (`S/`, `S/.`, `US$`, `$`, `€`, códigos de una lista blanca), espacios y `+`;
  * resuelve el signo (paréntesis, `-` al inicio o al final). Devuelve sólo dígitos y separadores,
  * o null si el texto no tiene forma de número.
  */
@@ -35,7 +38,7 @@ function limpiarMonto(texto: string): Limpio | null {
     .replace(/S\/\.?/gi, '')
     .replace(/US\$/gi, '')
     .replace(/[$€]/g, '')
-    .replace(/(?<![A-Za-z])[A-Z]{3}(?![A-Za-z])/g, '')
+    .replace(MONEDAS, '')
     .replace(/\s+/g, '')
     .replace(/\+/g, '');
   let negativo = false;
@@ -171,8 +174,13 @@ function fechaValida(a: number, m: number, d: number): string | null {
   return `${a}-${p(m)}-${p(d)}`;
 }
 
+/** aa mayor que (año actual + 1) ⇒ 19aa; si no, 20aa. */
+function anioDeDosDigitos(aa: number, hoy: Date): number {
+  return aa > (hoy.getFullYear() % 100) + 1 ? 1900 + aa : 2000 + aa;
+}
+
 /** YYYY-MM-DD, o null si la celda no es una fecha real. */
-export function leerFecha(c: Celda, f: FormatoFecha): string | null {
+export function leerFecha(c: Celda, f: FormatoFecha, hoy: Date = new Date()): string | null {
   if (c.valor instanceof Date) {
     if (Number.isNaN(c.valor.getTime()) || c.valor.getFullYear() < ANIO_MINIMO) return null;
     return fechaLocalISO(c.valor);
@@ -185,7 +193,7 @@ export function leerFecha(c: Celda, f: FormatoFecha): string | null {
   if (!dma) return null;
   const x = Number(dma[1]);
   const y = Number(dma[3]);
-  const anio = dma[4].length === 2 ? 2000 + Number(dma[4]) : Number(dma[4]);
+  const anio = dma[4].length === 2 ? anioDeDosDigitos(Number(dma[4]), hoy) : Number(dma[4]);
   return f === 'dia_primero' ? fechaValida(anio, y, x) : fechaValida(anio, x, y);
 }
 
