@@ -85,7 +85,7 @@ export function leerArchivo(datos: ArrayBuffer, nombre: string): Hoja[] {
     // raw: true deja todo como texto tal cual viene en el archivo.
     libro = XLSX.read(texto, { type: 'string', raw: true, FS: detectarSeparador(texto) });
   } else {
-    libro = XLSX.read(new Uint8Array(datos), { type: 'array', cellDates: true, cellFormula: true });
+    libro = XLSX.read(new Uint8Array(datos), { type: 'array', cellDates: true, cellFormula: true, sheetStubs: true });
   }
   return libro.SheetNames.map((n) => ({ nombre: n, filas: hojaAFilas(libro.Sheets[n]) }));
 }
