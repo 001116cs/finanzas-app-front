@@ -67,7 +67,7 @@ export function Dashboard() {
             items={items}
             total={total}
             moneda={resumen.moneda}
-            cargandoMas={cargandoMas}
+            cargandoMas={cargandoMas || cargando}
             onEditar={setEditando}
             onCargarMas={cargarMas}
           />

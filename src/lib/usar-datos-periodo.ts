@@ -30,14 +30,23 @@ export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista) {
   // El tipo va en la clave: cambiarlo recarga y descarta un "cargar más" pendiente.
   const clave = JSON.stringify({ periodo, tipo });
   const generacion = useRef(0);
+  const ultimaClave = useRef(clave);
 
   useEffect(() => {
     let activo = true;
     generacion.current++;
+    // Al cambiar período o tipo, la lista anterior ya no corresponde: se vacía.
+    // Un simple refrescar (misma clave) la conserva mientras recarga.
+    const cambioClave = ultimaClave.current !== clave;
+    ultimaClave.current = clave;
     (async () => {
       setCargando(true);
       setCargandoMas(false);
       setError(null);
+      if (cambioClave) {
+        setItems([]);
+        setTotal(0);
+      }
       try {
         const { periodo: p, tipo: t } = JSON.parse(clave) as { periodo: Periodo; tipo: TipoVista };
         const { data: r } = await api.GET('/resumen', {
@@ -65,7 +74,7 @@ export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista) {
   }, [api, clave, version]);
 
   const cargarMas = useCallback(async () => {
-    if (!resumen) return;
+    if (!resumen || cargando) return;
     const miGeneracion = generacion.current;
     setCargandoMas(true);
     try {
@@ -85,7 +94,7 @@ export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista) {
     } finally {
       if (miGeneracion === generacion.current) setCargandoMas(false);
     }
-  }, [api, resumen, pagina, tipo]);
+  }, [api, resumen, pagina, tipo, cargando]);
 
   const refrescar = useCallback(() => setVersion((v) => v + 1), []);
 
