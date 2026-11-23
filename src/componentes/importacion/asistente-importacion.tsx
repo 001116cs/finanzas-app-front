@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorApi } from '@/lib/api/cliente';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
@@ -10,7 +10,7 @@ import { useCategorias } from '@/lib/usar-datos-periodo';
 import { mensajes } from '@/mensajes/es';
 import { derivar } from './derivar';
 import { DialogoDuplicados } from './dialogo-duplicados';
-import { ESTADO_INICIAL, reductor, type Paso } from './estado-asistente';
+import { type Accion, ESTADO_INICIAL, reductor, type Paso } from './estado-asistente';
 import { PasoArchivo } from './paso-archivo';
 import { PasoCategorias } from './paso-categorias';
 import { PasoColumnas } from './paso-columnas';
@@ -24,13 +24,22 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
   const { categorias, cargadas, error: errorCategorias } = useCategorias();
   const [moneda, setMoneda] = useState<string | null>(null);
   const [errorPerfil, setErrorPerfil] = useState<string | null>(null);
-  const [estado, dispatch] = useReducer(reductor, ESTADO_INICIAL);
+  const [estado, dispatchBase] = useReducer(reductor, ESTADO_INICIAL);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dialogoDuplicadas, setDialogoDuplicadas] = useState(false);
   /** Origen (fila de la hoja) que el back rechazó, para resaltarla en la vista previa. */
   const [filaConError, setFilaConError] = useState<number | null>(null);
   const enVuelo = useRef(false);
+
+  /** Cualquier cambio del usuario tras un rechazo del back invalida la fila resaltada y su alerta. */
+  const dispatch = useCallback((accion: Accion) => {
+    if (accion.tipo !== 'duplicadas' && accion.tipo !== 'listo') {
+      setFilaConError(null);
+      setError(null);
+    }
+    dispatchBase(accion);
+  }, []);
 
   useEffect(() => {
     let activo = true;

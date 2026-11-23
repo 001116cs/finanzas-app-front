@@ -258,6 +258,48 @@ describe('AsistenteImportacion', () => {
     expect(document.querySelectorAll('[data-error="true"]')).toHaveLength(0);
   });
 
+  describe('tras un rechazo del back', () => {
+    async function conRechazo() {
+      post.mockImplementation(async (ruta: string) => {
+        if (ruta === '/importaciones/duplicados') return { data: { indices: [] } };
+        throw new ErrorApi(400, 'x', 'MONTO_INVALIDO', 3);
+      });
+      const r = montarAsistente();
+      await extractoHastaVista(r.u);
+      await r.u.click(await screen.findByRole('button', { name: m.accionImportar }));
+      await screen.findByRole('alert');
+      expect(document.querySelectorAll('[data-error="true"]')).toHaveLength(1);
+      return r;
+    }
+
+    it('marcar o desmarcar una fila limpia la fila resaltada y la alerta', async () => {
+      const { u } = await conRechazo();
+      const lista = screen.getByRole('list', { name: m.vista.lista });
+      await u.click(within(lista).getAllByRole('checkbox')[0]);
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(document.querySelectorAll('[data-error="true"]')).toHaveLength(0);
+    });
+
+    it('Atrás limpia la alerta y la fila resaltada al volver', async () => {
+      const { u } = await conRechazo();
+      await u.click(screen.getByRole('button', { name: m.atras }));
+      expect(screen.queryByRole('alert')).toBeNull();
+      await siguiente(u);
+      await screen.findByRole('list', { name: m.vista.lista });
+      expect(document.querySelectorAll('[data-error="true"]')).toHaveLength(0);
+    });
+
+    it('cambiar el mapeo limpia la alerta y la fila resaltada', async () => {
+      const { u } = await conRechazo();
+      await u.click(screen.getByRole('button', { name: m.atras }));
+      await u.click(await screen.findByRole('radio', { name: m.signos.positivos }));
+      expect(screen.queryByRole('alert')).toBeNull();
+      await siguiente(u);
+      await screen.findByRole('list', { name: m.vista.lista });
+      expect(document.querySelectorAll('[data-error="true"]')).toHaveLength(0);
+    });
+  });
+
   it('Atrás, cambiar el mapeo y Siguiente vuelve a consultar duplicados', async () => {
     const { u } = montarAsistente();
     await extractoHastaVista(u);

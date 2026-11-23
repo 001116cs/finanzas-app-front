@@ -26,6 +26,18 @@ npm run api:tipos
 
 Genera `src/lib/api/esquema.d.ts` a partir de `../finanzas-app-back/openapi.json` (el back debe estar clonado al lado; se regenera con `npm run openapi:export` en el back).
 
+## Importar desde Excel
+
+En **Importar** puedes traer movimientos desde un archivo `.xlsx`, `.xls` o `.csv` (hasta 5 MB y 2.000 filas por importación).
+
+1. **Archivo**: elige el archivo (y la hoja, si el libro tiene varias).
+2. **Columnas**: indica cuáles son Descripción y Monto (obligatorias), y opcionalmente Fecha y Categoría. Elige el tipo del lote (gastos o ingresos) y revisa el recuadro de formato de montos (`1.234,56` o `1,234.50`) y de fechas (día/mes o mes/día). Si el formato es ambiguo, debes confirmarlo para continuar. Si hay montos positivos y negativos, elige con cuáles quedarte.
+3. **Categorías**: si el archivo trae categorías que no existen, elige crearlas, usar la categoría del lote o dejarlas sin categoría.
+4. **Vista previa**: se avisa de las filas que ya tienes registradas (misma fecha, monto, descripción y tipo) para revisarlas, incluirlas u omitirlas. Las filas excluidas por regla se ven tachadas con su motivo; puedes desmarcar las que no quieras.
+5. **Confirmar**: se guarda todo el lote o nada. Una fila sin fecha se registra con la fecha de hoy en tu zona horaria.
+
+Debajo del asistente está el **historial**: cada importación se puede **deshacer**, lo que elimina todos sus movimientos (aunque los hayas editado). Las categorías creadas por la importación se conservan. Archivos de ejemplo en `src/lib/importacion/__fixtures__/`.
+
 ## Tests
 
 ```bash

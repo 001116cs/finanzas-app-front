@@ -258,6 +258,17 @@ export const mensajes = {
       signo_descartado: 'Signo descartado',
       demasiados_decimales: 'Más de 2 decimales',
     },
+    historial: {
+      titulo: 'Historial de importaciones',
+      cargando: 'Cargando historial…',
+      vacio: 'Aún no has importado archivos',
+      movimientos: (n: number) => (n === 1 ? '1 movimiento' : `${n} movimientos`),
+      deshacer: 'Deshacer',
+      deshaciendo: 'Deshaciendo…',
+      confirmarTitulo: 'Deshacer importación',
+      confirmar: (n: number, archivo: string) =>
+        `Se eliminarán ${n} movimientos importados de «${archivo}». Esta acción no se puede deshacer.`,
+    },
     listo: {
       titulo: (n: number) => (n === 1 ? 'Se importó 1 movimiento' : `Se importaron ${n} movimientos`),
       dashboard: 'Ir al dashboard',
