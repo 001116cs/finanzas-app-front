@@ -198,6 +198,11 @@ export const mensajes = {
       diaPrimero: 'día/mes/año',
       mesPrimero: 'mes/día/año',
       ambiguo: 'No pudimos saber el formato; revisa que sea el correcto',
+      ejemplosMontos: 'Así leeremos tus montos:',
+      ejemplosFechas: 'Así leeremos tus fechas:',
+      ejemplo: (original: string, resultado: string) => `"${original}" → ${resultado}`,
+      invalido: 'no válido',
+      meses: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
     },
     signos: {
       pregunta: 'Encontramos montos positivos y negativos. ¿Con cuáles quieres quedarte?',

@@ -116,6 +116,22 @@ describe('AsistenteImportacion', () => {
     expect(within(lista2).getByText(money('2300.00'))).toBeInTheDocument();
   });
 
+  it('el recuadro muestra ejemplos interpretados que cambian al cambiar la opción', async () => {
+    const { u } = montarAsistente();
+    await subir(u, csv('a.csv', 'Fecha,Descripción,Monto\n02/11/2026,Proyecto A,1.250\n15/11/2026,Proyecto B,2.300\n'));
+    await siguiente(u);
+    const recuadro = await screen.findByTestId('recuadro-formato');
+    const ejemplos = () => within(recuadro).getAllByTestId('ejemplos-formato').map((e) => e.textContent).join('|');
+    await u.click(within(recuadro).getByRole('radio', { name: m.formato.montoComa }));
+    expect(ejemplos()).toContain('"1.250" → 1.250,00');
+    await u.click(within(recuadro).getByRole('radio', { name: m.formato.montoPunto }));
+    expect(ejemplos()).toContain('"1.250" → 1,25');
+    expect(ejemplos()).toContain('"02/11/2026" → 2 nov 2026');
+    await u.click(within(recuadro).getByRole('radio', { name: m.formato.mesPrimero }));
+    expect(ejemplos()).toContain('"02/11/2026" → 11 feb 2026');
+    expect(ejemplos()).toContain(`"15/11/2026" → ${m.formato.invalido}`);
+  });
+
   it('confirmar el formato ambiguo con el valor preseleccionado también habilita Siguiente', async () => {
     const { u } = montarAsistente();
     await subir(u, csv('a.csv', 'Descripción,Monto\nA,1.250\nB,2.300\n'));
@@ -225,6 +241,36 @@ describe('AsistenteImportacion', () => {
     expect(body.filas[1]).toMatchObject({ categoriaId: 'g1', categoriaNueva: null });
     expect(await screen.findByText(m.listo.titulo(2))).toBeInTheDocument();
     expect(onImportado).toHaveBeenCalledTimes(1);
+  });
+
+  it('tras importar creando categorías, "Importar otro" ya las conoce (no vuelven a ser desconocidas)', async () => {
+    let creada = false;
+    get.mockImplementation(async (ruta: string) =>
+      ruta === '/perfil'
+        ? { data: { moneda: 'PEN', zonaHoraria: 'America/Lima' } }
+        : { data: creada ? [...categorias, { id: 'g9', nombre: 'Mascotas', tipo: 'gasto', cantidadMovimientos: 2 }] : categorias },
+    );
+    post.mockImplementation(async (ruta: string) => {
+      if (ruta === '/importaciones/duplicados') return { data: { indices: [] } };
+      creada = true;
+      return { data: { id: 'x', nombreArchivo: 'l.csv', filasImportadas: 2, createdAt: '2026-11-22T00:00:00Z' } };
+    });
+    const { u } = montarAsistente();
+    const texto = 'Descripción;Monto;Categoría\nCroquetas;10,00;Mascotas\nArena;5,00;Mascotas\n';
+    await subir(u, csv('l.csv', texto));
+    await siguiente(u);
+    await siguiente(u);
+    await u.click(await screen.findByRole('radio', { name: m.categorias.crear }));
+    await siguiente(u);
+    await u.click(await screen.findByRole('button', { name: m.accionImportar }));
+    await screen.findByText(m.listo.titulo(2));
+    await u.click(screen.getByRole('button', { name: m.listo.otro }));
+    await subir(u, csv('l.csv', texto));
+    await siguiente(u);
+    await siguiente(u);
+    // Sin desconocidas: salta directo a la vista previa (no aparece el paso de categorías).
+    expect(await screen.findByRole('list', { name: m.vista.lista })).toBeInTheDocument();
+    expect(screen.queryByText('Mascotas (2 filas)')).toBeNull();
   });
 
   it('un error con fila 3 señala la fila del archivo (origen + 1) y la resalta en la vista previa', async () => {

@@ -5,6 +5,7 @@ import type { components } from '@/lib/api/esquema';
 import { mensajes } from '@/mensajes/es';
 import type { Derivados } from './derivar';
 import type { Accion, Estado, Signos } from './estado-asistente';
+import { celdasColumna } from '@/lib/importacion/interpretar';
 import { RecuadroFormato } from './recuadro-formato';
 
 type Categoria = components['schemas']['CategoriaRespuesta'];
@@ -126,6 +127,8 @@ export function PasoColumnas({ estado, derivados, categorias, dispatch, ocupado 
           formatoFecha={derivados.formatoFecha}
           conFecha={estado.fecha !== undefined}
           pendiente={derivados.montoPendiente || derivados.fechaPendiente}
+          muestrasMonto={derivados.hoja ? celdasColumna(derivados.hoja, estado.encabezado, estado.monto) : []}
+          muestrasFecha={derivados.hoja && estado.fecha !== undefined ? celdasColumna(derivados.hoja, estado.encabezado, estado.fecha) : []}
           onMonto={(valor) => cambiar({ formatoMonto: { clave: `${claveBase}|${estado.monto}`, valor } })}
           onFecha={(valor) => cambiar({ formatoFecha: { clave: `${claveBase}|${estado.fecha}`, valor } })}
         />
