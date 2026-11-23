@@ -116,6 +116,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/importaciones/duplicados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ImportacionesController_postDuplicados"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/importaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ImportacionesController_get"];
+        put?: never;
+        post: operations["ImportacionesController_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/importaciones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["ImportacionesController_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -250,6 +298,65 @@ export interface components {
              */
             balance: string;
             porCategoria: components["schemas"]["TotalCategoriaRespuesta"][];
+        };
+        FilaDuplicadoDto: {
+            /**
+             * @description YYYY-MM-DD; null = hoy en la zona horaria del perfil
+             * @example 2026-11-19
+             */
+            fecha: string | null;
+            descripcion: string;
+            /** @example 12.50 */
+            monto: string;
+            /** @enum {string} */
+            tipo: "gasto" | "ingreso";
+        };
+        DuplicadosDto: {
+            /** @description 1 a 2000 filas */
+            filas: components["schemas"]["FilaDuplicadoDto"][];
+        };
+        DuplicadosRespuesta: {
+            /** @description Índices (0-based, ascendentes) de filas ya registradas */
+            indices: number[];
+        };
+        CategoriaNuevaDto: {
+            nombre: string;
+            /** @enum {string} */
+            tipo: "gasto" | "ingreso";
+        };
+        FilaImportacionDto: {
+            /**
+             * @description YYYY-MM-DD; null = hoy en la zona horaria del perfil
+             * @example 2026-11-19
+             */
+            fecha: string | null;
+            descripcion: string;
+            /** @example 12.50 */
+            monto: string;
+            /** @enum {string} */
+            tipo: "gasto" | "ingreso";
+            /**
+             * Format: uuid
+             * @description Categoría existente del usuario y del tipo de la fila
+             */
+            categoriaId: string | null;
+            /** @description Nombre de una de `categoriasNuevas` del mismo tipo; no puede combinarse con categoriaId */
+            categoriaNueva: string | null;
+        };
+        ImportacionDto: {
+            nombreArchivo: string;
+            /** @description Categorías a crear */
+            categoriasNuevas: components["schemas"]["CategoriaNuevaDto"][];
+            /** @description 1 a 2000 filas */
+            filas: components["schemas"]["FilaImportacionDto"][];
+        };
+        ImportacionRespuesta: {
+            /** Format: uuid */
+            id: string;
+            nombreArchivo: string;
+            filasImportadas: number;
+            /** Format: date-time */
+            createdAt: string;
         };
     };
     responses: never;
@@ -851,6 +958,186 @@ export interface operations {
                 };
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    ImportacionesController_postDuplicados: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicadosDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicadosRespuesta"];
+                };
+            };
+            /** @description LOTE_VACIO, LOTE_DEMASIADO_GRANDE o error de una fila (incluye `fila`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    ImportacionesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Importaciones del usuario, la más reciente primero */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportacionRespuesta"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    ImportacionesController_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportacionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportacionRespuesta"];
+                };
+            };
+            /** @description LOTE_VACIO, LOTE_DEMASIADO_GRANDE, CATEGORIA_NUEVA_INVALIDA, CATEGORIA_INCOMPATIBLE o error de una fila (incluye `fila`, 0-based); no se guarda nada */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    ImportacionesController_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Importación deshecha: se borran todos sus movimientos (aunque se hayan editado); las categorías creadas se conservan */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
