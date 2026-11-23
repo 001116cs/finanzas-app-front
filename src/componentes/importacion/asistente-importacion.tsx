@@ -21,7 +21,7 @@ const MAX_FILAS = 2000;
 
 export function AsistenteImportacion({ onImportado }: { onImportado: () => void }) {
   const api = useApi();
-  const { categorias, cargadas, error: errorCategorias } = useCategorias();
+  const { categorias, cargadas, error: errorCategorias, recargar } = useCategorias();
   const [moneda, setMoneda] = useState<string | null>(null);
   const [errorPerfil, setErrorPerfil] = useState<string | null>(null);
   const [estado, dispatchBase] = useReducer(reductor, ESTADO_INICIAL);
@@ -123,6 +123,8 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
         body: { nombreArchivo: estado.nombreArchivo, categoriasNuevas, filas },
       });
       dispatch({ tipo: 'listo', importadas: data?.filasImportadas ?? filas.length });
+      // Pudo crear categorías: la lista local queda vieja.
+      recargar();
       onImportado();
     } catch (e) {
       const base = mensajeDeError(e);
@@ -164,7 +166,10 @@ export function AsistenteImportacion({ onImportado }: { onImportado: () => void 
           <a href="#historial" className="text-sm underline underline-offset-4">
             {m.listo.historial}
           </a>
-          <Button variant="outline" onClick={() => dispatch({ tipo: 'reiniciar' })}>
+          <Button variant="outline" onClick={() => {
+              recargar();
+              dispatch({ tipo: 'reiniciar' });
+            }}>
             {m.listo.otro}
           </Button>
         </div>

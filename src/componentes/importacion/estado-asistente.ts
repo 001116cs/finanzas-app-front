@@ -98,8 +98,11 @@ export function reductor(e: Estado, a: Accion): Estado {
       return { ...e, ...mapeoDeHoja(e.hojas, a.indice) };
     case 'encabezado':
       return { ...e, ...mapeoDeHoja(e.hojas, e.hoja, a.fila) };
-    case 'cambiar':
-      return { ...e, ...a.cambios };
+    case 'cambiar': {
+      // La respuesta de signos es de una columna de montos concreta: si cambia, se descarta.
+      const cambiaMonto = 'monto' in a.cambios && a.cambios.monto !== e.monto;
+      return { ...e, ...(cambiaMonto ? { signos: undefined } : {}), ...a.cambios };
+    }
     case 'ir':
       return { ...e, paso: a.paso };
     case 'duplicadas':

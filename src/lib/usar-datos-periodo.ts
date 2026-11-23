@@ -106,6 +106,8 @@ export function useCategorias() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [cargadas, setCargadas] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
+  const recargar = useCallback(() => setVersion((v) => v + 1), []);
   useEffect(() => {
     let activo = true;
     api
@@ -122,6 +124,6 @@ export function useCategorias() {
     return () => {
       activo = false;
     };
-  }, [api]);
-  return { categorias, cargadas, error };
+  }, [api, version]);
+  return { categorias, cargadas, error, recargar };
 }
