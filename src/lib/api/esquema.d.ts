@@ -203,7 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["BoletasController_getLista"];
         put?: never;
         post: operations["BoletasController_post"];
         delete?: never;
@@ -223,6 +223,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["BoletasController_delete"];
+        options?: never;
+        head?: never;
+        patch: operations["BoletasController_patch"];
+        trace?: never;
+    };
+    "/boletas/{id}/gastos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BoletasController_postGasto"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -495,7 +511,7 @@ export interface components {
             id: string;
             gastosCreados: number;
         };
-        BoletaRespuesta: {
+        ResumenBoletaRespuesta: {
             /** Format: uuid */
             id: string;
             comercio: string;
@@ -508,6 +524,53 @@ export interface components {
             totalImpreso: string | null;
             /** Format: date-time */
             createdAt: string;
+            /** @description Cantidad de gastos enlazados */
+            gastos: number;
+            /**
+             * @description Suma de los gastos, 2 decimales
+             * @example 8.40
+             */
+            sumaGastos: string;
+        };
+        ListaBoletasRespuesta: {
+            items: components["schemas"]["ResumenBoletaRespuesta"][];
+            total: number;
+        };
+        DetalleBoletaRespuesta: {
+            /** Format: uuid */
+            id: string;
+            comercio: string;
+            /**
+             * @description YYYY-MM-DD
+             * @example 2026-11-19
+             */
+            fecha: string;
+            /** @example 23.40 */
+            totalImpreso: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Gastos enlazados a la boleta, por orden de creación */
+            gastos: components["schemas"]["TransaccionRespuesta"][];
+        };
+        EditarBoletaDto: {
+            comercio?: string;
+            /** @example 2026-11-19 */
+            fecha?: string;
+            /**
+             * @description null quita el total impreso
+             * @example 23.40
+             */
+            totalImpreso?: string | null;
+        };
+        GastoBoletaDto: {
+            descripcion: string;
+            /**
+             * @description Mayor que 0
+             * @example 12.50
+             */
+            monto: string;
+            /** Format: uuid */
+            categoriaId: string | null;
         };
     };
     responses: never;
@@ -1418,6 +1481,53 @@ export interface operations {
             };
         };
     };
+    BoletasController_getLista: {
+        parameters: {
+            query?: {
+                pagina?: number;
+                tamano?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaBoletasRespuesta"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO (en escanear también LIMITE_BOLETAS, LIMITE_INTENTOS_FALLIDOS o LIMITE_GLOBAL_IA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
     BoletasController_post: {
         parameters: {
             query?: never;
@@ -1491,7 +1601,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BoletaRespuesta"];
+                    "application/json": components["schemas"]["DetalleBoletaRespuesta"];
                 };
             };
             401: {
@@ -1538,6 +1648,126 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO (en escanear también LIMITE_BOLETAS, LIMITE_INTENTOS_FALLIDOS o LIMITE_GLOBAL_IA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    BoletasController_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarBoletaDto"];
+            };
+        };
+        responses: {
+            /** @description Boleta actualizada; si cambia la fecha, también la de todos sus gastos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetalleBoletaRespuesta"];
+                };
+            };
+            /** @description VALIDACION (incluye body sin campos), COMERCIO_INVALIDO, FECHA_INVALIDA o MONTO_INVALIDO */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO (en escanear también LIMITE_BOLETAS, LIMITE_INTENTOS_FALLIDOS o LIMITE_GLOBAL_IA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    BoletasController_postGasto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GastoBoletaDto"];
+            };
+        };
+        responses: {
+            /** @description Gasto creado con la fecha de la boleta */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransaccionRespuesta"];
+                };
+            };
+            /** @description VALIDACION, MONTO_INVALIDO o CATEGORIA_INCOMPATIBLE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
             };
             401: {
                 headers: {

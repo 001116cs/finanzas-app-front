@@ -18,7 +18,9 @@ function avisoDeLimite(uso: UsoIa | null): string | null {
 
 export function EscanerBoleta({
   onLeida,
+  permitirCamara = true,
 }: {
+  permitirCamara?: boolean;
   onLeida: (lectura: LecturaBoleta, imagen: Blob) => void;
 }) {
   const api = useApi();
@@ -78,9 +80,11 @@ export function EscanerBoleta({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" disabled={deshabilitado} onClick={() => inputFoto.current?.click()}>
-          {mensajes.boletas.tomarFoto}
-        </Button>
+        {permitirCamara && (
+          <Button type="button" disabled={deshabilitado} onClick={() => inputFoto.current?.click()}>
+            {mensajes.boletas.tomarFoto}
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -89,14 +93,16 @@ export function EscanerBoleta({
         >
           {mensajes.boletas.subirImagen}
         </Button>
-        <input
-          ref={inputFoto}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          hidden
-          onChange={alElegir}
-        />
+        {permitirCamara && (
+          <input
+            ref={inputFoto}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={alElegir}
+          />
+        )}
         <input
           ref={inputSubir}
           type="file"

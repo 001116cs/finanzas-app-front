@@ -100,4 +100,12 @@ describe('EscanerBoleta', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(mensajes.errores.IMAGEN_INVALIDA);
     expect(post).not.toHaveBeenCalled();
   });
+
+  it('con permitirCamara=false no hay "Tomar foto" ni input capture', async () => {
+    const { container } = render(<EscanerBoleta permitirCamara={false} onLeida={vi.fn()} />);
+    await screen.findByText('3/20 boletas este mes');
+    expect(screen.queryByRole('button', { name: mensajes.boletas.tomarFoto })).not.toBeInTheDocument();
+    expect(container.querySelector('input[capture]')).toBeNull();
+    expect(screen.getByRole('button', { name: mensajes.boletas.subirImagen })).toBeInTheDocument();
+  });
 });

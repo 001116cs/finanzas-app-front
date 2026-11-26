@@ -5,7 +5,13 @@ type ClienteApi = ReturnType<typeof crearClienteApi>;
 
 export type LecturaBoleta = components['schemas']['LecturaBoletaRespuesta'];
 export type UsoIa = components['schemas']['UsoIaRespuesta'];
-export type Boleta = components['schemas']['BoletaRespuesta'];
+export type DetalleBoleta = components['schemas']['DetalleBoletaRespuesta'];
+export type Boleta = DetalleBoleta;
+export type ResumenBoleta = components['schemas']['ResumenBoletaRespuesta'];
+export type ListaBoletas = components['schemas']['ListaBoletasRespuesta'];
+export type CambiosBoleta = components['schemas']['EditarBoletaDto'];
+export type GastoNuevoBoleta = components['schemas']['GastoBoletaDto'];
+export type GastoBoleta = components['schemas']['TransaccionRespuesta'];
 
 export interface DatosGuardarBoleta {
   comercio: string;
@@ -72,4 +78,37 @@ export async function obtenerImagenBoleta(api: ClienteApi, id: string): Promise<
 
 export async function eliminarBoleta(api: ClienteApi, id: string): Promise<void> {
   await api.DELETE('/boletas/{id}', { params: { path: { id } } });
+}
+
+export async function listarBoletas(
+  api: ClienteApi,
+  pagina: number,
+  tamano = 12,
+): Promise<ListaBoletas> {
+  const { data } = await api.GET('/boletas', { params: { query: { pagina, tamano } } });
+  return data as ListaBoletas;
+}
+
+export async function editarBoleta(
+  api: ClienteApi,
+  id: string,
+  cambios: CambiosBoleta,
+): Promise<DetalleBoleta> {
+  const { data } = await api.PATCH('/boletas/{id}', {
+    params: { path: { id } },
+    body: cambios,
+  });
+  return data as DetalleBoleta;
+}
+
+export async function agregarGastoBoleta(
+  api: ClienteApi,
+  id: string,
+  gasto: GastoNuevoBoleta,
+): Promise<GastoBoleta> {
+  const { data } = await api.POST('/boletas/{id}/gastos', {
+    params: { path: { id } },
+    body: gasto,
+  });
+  return data as GastoBoleta;
 }

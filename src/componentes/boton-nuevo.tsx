@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -83,6 +84,78 @@ export function PanelMovimiento({
   );
 }
 
+function OpcionMenu({
+  titulo,
+  descripcion,
+  onClick,
+}: {
+  titulo: string;
+  descripcion: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      onClick={onClick}
+      className="h-auto w-full flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left"
+    >
+      <span className="text-base font-medium">{titulo}</span>
+      <span className="text-sm font-normal text-muted-foreground">{descripcion}</span>
+    </Button>
+  );
+}
+
+function MenuNuevo({
+  abierto,
+  onAbiertoChange,
+  onMovimiento,
+  onBoleta,
+}: {
+  abierto: boolean;
+  onAbiertoChange: (a: boolean) => void;
+  onMovimiento: () => void;
+  onBoleta: () => void;
+}) {
+  const escritorio = useEsEscritorio();
+  const opciones = (
+    <div className="grid gap-3">
+      <OpcionMenu
+        titulo={mensajes.boletas.menu.movimiento}
+        descripcion={mensajes.boletas.menu.movimientoDescripcion}
+        onClick={onMovimiento}
+      />
+      <OpcionMenu
+        titulo={mensajes.boletas.menu.boleta}
+        descripcion={mensajes.boletas.menu.boletaDescripcion}
+        onClick={onBoleta}
+      />
+    </div>
+  );
+  if (escritorio) {
+    return (
+      <Dialog open={abierto} onOpenChange={onAbiertoChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{mensajes.boletas.menu.titulo}</DialogTitle>
+          </DialogHeader>
+          {opciones}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  return (
+    <Sheet open={abierto} onOpenChange={onAbiertoChange}>
+      <SheetContent side="bottom" className="p-4">
+        <SheetHeader className="p-0">
+          <SheetTitle>{mensajes.boletas.menu.titulo}</SheetTitle>
+        </SheetHeader>
+        {opciones}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function BotonNuevo({
   categorias,
   tipoInicial,
@@ -92,17 +165,31 @@ export function BotonNuevo({
   tipoInicial: TipoVista;
   onGuardado: () => void;
 }) {
+  const router = useRouter();
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const [abierto, setAbierto] = useState(false);
   return (
     <>
       <Button
         size="icon-lg"
         aria-label={mensajes.dashboard.nuevo}
-        onClick={() => setAbierto(true)}
+        onClick={() => setMenuAbierto(true)}
         className="fixed right-4 bottom-4 z-40 size-14 rounded-full shadow-lg"
       >
         <Plus className="size-6" />
       </Button>
+      <MenuNuevo
+        abierto={menuAbierto}
+        onAbiertoChange={setMenuAbierto}
+        onMovimiento={() => {
+          setMenuAbierto(false);
+          setAbierto(true);
+        }}
+        onBoleta={() => {
+          setMenuAbierto(false);
+          router.push('/boletas/nueva');
+        }}
+      />
       <PanelMovimiento
         abierto={abierto}
         onAbiertoChange={setAbierto}
