@@ -15,8 +15,11 @@ export default function NuevaBoleta({
   searchParams: Promise<{ [clave: string]: string | string[] | undefined }>;
 }) {
   const consulta = use(searchParams);
-  // `?foto=1`: viene de "Tomar foto" del +, con la foto ya hecha; se lee al entrar.
-  const [fotoInicial] = useState(() => (consulta.foto === '1' ? leerFotoPendiente() : null));
+  // `?foto=1`: viene del + con la foto ya elegida; se lee al entrar, una sola vez
+  // (se descarta al recibir la lectura para que "Cancelar" no la vuelva a enviar a la IA).
+  const [fotoInicial, setFotoInicial] = useState(() =>
+    consulta.foto === '1' ? leerFotoPendiente() : null,
+  );
   const conCamara = consulta.camara === '1' || consulta.foto === '1';
   useEffect(() => {
     descartarFotoPendiente();
@@ -35,7 +38,10 @@ export default function NuevaBoleta({
               <EscanerBoleta
                 permitirCamara={conCamara}
                 archivoInicial={fotoInicial}
-                onLeida={(lectura, imagen) => setEscaneo({ lectura, imagen })}
+                onLeida={(lectura, imagen) => {
+                  setFotoInicial(null);
+                  setEscaneo({ lectura, imagen });
+                }}
               />
               <button type="button" onClick={() => router.back()} className="text-sm underline">
                 {mensajes.boletas.nueva.cancelar}
