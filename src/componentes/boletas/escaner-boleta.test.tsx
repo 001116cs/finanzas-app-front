@@ -20,6 +20,15 @@ vi.mock('@/lib/boletas/reducir-imagen', async (orig) => ({
   reducirImagen: (f: File) => reducir(f),
 }));
 
+const fotoWebcam = new File(['w'], 'foto.jpg', { type: 'image/jpeg' });
+vi.mock('./camara-web', () => ({
+  CamaraWeb: (p: { onCaptura: (f: File) => void }) => (
+    <button type="button" onClick={() => p.onCaptura(fotoWebcam)}>
+      webcam-falsa
+    </button>
+  ),
+}));
+
 import { ErrorApi } from '@/lib/api/cliente';
 import { EscanerBoleta } from './escaner-boleta';
 
@@ -78,6 +87,20 @@ describe('EscanerBoleta', () => {
     expect(reducir).toHaveBeenCalledWith(foto);
     rerender(<EscanerBoleta onLeida={onLeida} archivoInicial={foto} />);
     expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  it('en PC, "Tomar foto" abre la webcam y lee la foto capturada', async () => {
+    window.matchMedia = (() => ({ matches: false })) as unknown as typeof window.matchMedia;
+    const abrirSelector = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+    const onLeida = vi.fn();
+    render(<EscanerBoleta onLeida={onLeida} />);
+    await screen.findByText('3/20 boletas este mes');
+    await userEvent.click(screen.getByRole('button', { name: mensajes.boletas.tomarFoto }));
+    expect(abrirSelector).not.toHaveBeenCalled();
+    abrirSelector.mockRestore();
+    await userEvent.click(screen.getByRole('button', { name: 'webcam-falsa' }));
+    await waitFor(() => expect(onLeida).toHaveBeenCalledWith(lectura, blob));
+    expect(reducir).toHaveBeenCalledWith(fotoWebcam);
   });
 
   it('entrega la lectura y la imagen al escanear', async () => {

@@ -2,14 +2,17 @@
 
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useRef, useState, useSyncExternalStore } from 'react';
+import { useRef, useState, useSyncExternalStore, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import type { components } from '@/lib/api/esquema';
+import { esDispositivoTactil } from '@/lib/boletas/camara-web';
 import { guardarFotoPendiente } from '@/lib/boletas/foto-pendiente';
 import type { TipoVista } from '@/lib/tipo-vista';
 import { mensajes } from '@/mensajes/es';
+import { CamaraWeb } from './boletas/camara-web';
+import { ACEPTA_SUBIR } from './boletas/escaner-boleta';
 import { FormularioMovimiento } from './formulario-movimiento';
 
 type Categoria = components['schemas']['CategoriaRespuesta'];
@@ -88,10 +91,13 @@ export function PanelMovimiento({
 function OpcionMenu({
   titulo,
   descripcion,
+  etiqueta,
   onClick,
 }: {
   titulo: string;
   descripcion: string;
+  /** Distintivo opcional junto al título (p. ej. "Recomendado en celular"). */
+  etiqueta?: string;
   onClick: () => void;
 }) {
   return (
@@ -101,7 +107,14 @@ function OpcionMenu({
       onClick={onClick}
       className="h-auto w-full flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left"
     >
-      <span className="text-base font-medium">{titulo}</span>
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="text-base font-medium">{titulo}</span>
+        {etiqueta && (
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+            {etiqueta}
+          </span>
+        )}
+      </span>
       <span className="text-sm font-normal text-muted-foreground">{descripcion}</span>
     </Button>
   );
@@ -131,6 +144,7 @@ function MenuNuevo({
       <OpcionMenu
         titulo={mensajes.boletas.menu.foto}
         descripcion={mensajes.boletas.menu.fotoDescripcion}
+        etiqueta={mensajes.boletas.menu.fotoRecomendado}
         onClick={onFoto}
       />
       <OpcionMenu
@@ -176,6 +190,17 @@ export function BotonNuevo({
   const router = useRouter();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const inputFoto = useRef<HTMLInputElement>(null);
+  const inputSubir = useRef<HTMLInputElement>(null);
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
+
+  /** Guarda la imagen elegida (cámara o archivo) y va a /boletas/nueva, que la lee al entrar. */
+  function alElegirImagen(e: ChangeEvent<HTMLInputElement>) {
+    const imagen = e.target.files?.[0];
+    e.target.value = '';
+    if (!imagen) return;
+    guardarFotoPendiente(imagen);
+    router.push('/boletas/nueva?foto=1');
+  }
   const [abierto, setAbierto] = useState(false);
   return (
     <>
@@ -195,13 +220,16 @@ export function BotonNuevo({
           setAbierto(true);
         }}
         onFoto={() => {
-          // Se abre el selector de cámara en el mismo toque (el navegador sólo lo permite así).
-          inputFoto.current?.click();
+          // Celular/tablet: cámara nativa en el mismo toque (el navegador sólo lo permite así).
+          // PC: `capture` se ignora y abriría una carpeta, así que se usa la webcam dentro de la app.
+          if (esDispositivoTactil()) inputFoto.current?.click();
+          else setCamaraAbierta(true);
           setMenuAbierto(false);
         }}
         onBoleta={() => {
+          // Mismo selector que "Subir imagen" de /boletas/nueva, abierto en el mismo toque.
+          inputSubir.current?.click();
           setMenuAbierto(false);
-          router.push('/boletas/nueva');
         }}
       />
       {/* Fuera del menú para que no se desmonte al cerrarlo. */}
@@ -211,14 +239,23 @@ export function BotonNuevo({
         accept="image/*"
         capture="environment"
         hidden
-        onChange={(e) => {
-          const foto = e.target.files?.[0];
-          e.target.value = '';
-          if (!foto) return;
-          guardarFotoPendiente(foto);
-          router.push('/boletas/nueva?foto=1');
-        }}
+        onChange={alElegirImagen}
       />
+      <input ref={inputSubir} type="file" accept={ACEPTA_SUBIR} hidden onChange={alElegirImagen} />
+      {camaraAbierta && (
+        <CamaraWeb
+          onCaptura={(foto) => {
+            setCamaraAbierta(false);
+            guardarFotoPendiente(foto);
+            router.push('/boletas/nueva?foto=1');
+          }}
+          onCerrar={() => setCamaraAbierta(false)}
+          onSubirEnSuLugar={() => {
+            inputSubir.current?.click();
+            setCamaraAbierta(false);
+          }}
+        />
+      )}
       <PanelMovimiento
         abierto={abierto}
         onAbiertoChange={setAbierto}

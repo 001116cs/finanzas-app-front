@@ -4,8 +4,13 @@ import { useEffect, useEffectEvent, useRef, useState, type ChangeEvent } from 'r
 import { Button } from '@/components/ui/button';
 import { escanearBoleta, obtenerUsoIa, type LecturaBoleta, type UsoIa } from '@/lib/api/boletas';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
+import { esDispositivoTactil } from '@/lib/boletas/camara-web';
 import { IMAGEN_NO_SOPORTADA, reducirImagen } from '@/lib/boletas/reducir-imagen';
 import { mensajes } from '@/mensajes/es';
+import { CamaraWeb } from './camara-web';
+
+/** Tipos del selector "Subir imagen" (sin capture: el teléfono ofrece galería, archivos o cámara). */
+export const ACEPTA_SUBIR = 'image/jpeg,image/png,image/webp,image/*';
 
 function avisoDeLimite(uso: UsoIa | null): string | null {
   if (!uso) return null;
@@ -30,6 +35,7 @@ export function EscanerBoleta({
   const [uso, setUso] = useState<UsoIa | null>(null);
   const [leyendo, setLeyendo] = useState(archivoInicial !== null);
   const inicialLeido = useRef(false);
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputFoto = useRef<HTMLInputElement>(null);
   const inputSubir = useRef<HTMLInputElement>(null);
@@ -82,13 +88,23 @@ export function EscanerBoleta({
     leerInicial(archivoInicial);
   }, [archivoInicial]);
 
+  async function empezarLectura(archivo: File) {
+    setError(null);
+    setLeyendo(true);
+    await leer(archivo);
+  }
+
   async function alElegir(evento: ChangeEvent<HTMLInputElement>) {
     const archivo = evento.target.files?.[0];
     evento.target.value = '';
     if (!archivo) return;
-    setError(null);
-    setLeyendo(true);
-    await leer(archivo);
+    await empezarLectura(archivo);
+  }
+
+  /** Celular: cámara nativa. PC: `capture` se ignora (abriría una carpeta), así que se usa la webcam. */
+  function tomarFoto() {
+    if (esDispositivoTactil()) inputFoto.current?.click();
+    else setCamaraAbierta(true);
   }
 
   return (
@@ -100,7 +116,7 @@ export function EscanerBoleta({
       )}
       <div className="flex flex-wrap gap-2">
         {permitirCamara && (
-          <Button type="button" disabled={deshabilitado} onClick={() => inputFoto.current?.click()}>
+          <Button type="button" disabled={deshabilitado} onClick={tomarFoto}>
             {mensajes.boletas.tomarFoto}
           </Button>
         )}
@@ -125,11 +141,24 @@ export function EscanerBoleta({
         <input
           ref={inputSubir}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/*"
+          accept={ACEPTA_SUBIR}
           hidden
           onChange={alElegir}
         />
       </div>
+      {camaraAbierta && (
+        <CamaraWeb
+          onCaptura={(foto) => {
+            setCamaraAbierta(false);
+            void empezarLectura(foto);
+          }}
+          onCerrar={() => setCamaraAbierta(false)}
+          onSubirEnSuLugar={() => {
+            inputSubir.current?.click();
+            setCamaraAbierta(false);
+          }}
+        />
+      )}
       {leyendo && (
         <p role="status" className="text-sm text-muted-foreground">
           {mensajes.boletas.leyendo}

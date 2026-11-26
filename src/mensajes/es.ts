@@ -164,6 +164,24 @@ export const mensajes = {
     volverAEscanear: 'Volver a escanear',
     verFoto: 'Ver foto',
     fotoAlt: 'Foto de la boleta',
+    camara: {
+      titulo: 'Tomar foto',
+      iniciando: 'Abriendo la cámara…',
+      video: 'Vista previa de la cámara',
+      capturada: 'Foto capturada',
+      capturar: 'Capturar',
+      repetir: 'Repetir',
+      usar: 'Usar foto',
+      subirEnSuLugar: 'Subir una imagen',
+      errores: {
+        permiso:
+          'No diste permiso para usar la cámara. Actívalo en la configuración del navegador (el icono junto a la dirección de la página) y vuelve a intentarlo.',
+        sin_camara: 'No encontramos ninguna cámara en este equipo.',
+        ocupada: 'La cámara está siendo usada por otra aplicación. Ciérrala y vuelve a intentarlo.',
+        no_disponible: 'Este navegador no permite usar la cámara en esta página.',
+        otro: 'No se pudo abrir la cámara.',
+      },
+    },
     zoom: {
       abrir: 'Ampliar imagen',
       titulo: 'Imagen de la boleta',
@@ -179,6 +197,7 @@ export const mensajes = {
       boleta: 'Subir boleta',
       boletaDescripcion: 'Elige la foto de una boleta y la IA la lee',
       foto: 'Tomar foto',
+      fotoRecomendado: 'Recomendado en celular',
       fotoDescripcion: 'Fotografía la boleta con la cámara y la IA la lee',
     },
     nueva: {
