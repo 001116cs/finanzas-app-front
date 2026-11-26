@@ -15,7 +15,9 @@ import {
 import { cn } from '@/lib/utils';
 import { mensajes } from '@/mensajes/es';
 
-const ESCALA_DOBLE_CLIC = 2.5;
+const ESCALA_CLIC = 2.5;
+/** Movimiento máximo (px) para que soltar cuente como clic y no como arrastre. */
+const UMBRAL_CLIC = 6;
 
 type Props = {
   url: string;
@@ -24,12 +26,14 @@ type Props = {
   className?: string;
 };
 
-/** Miniatura que, al pulsarla, abre la imagen a pantalla completa con zoom (botones, rueda, doble clic, pellizco y arrastre). */
+/** Miniatura que, al pulsarla, abre la imagen a pantalla completa con zoom (botones, rueda, clic, pellizco y arrastre). */
 export function VisorImagen({ url, alt, className }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [zoom, setZoom] = useState<EstadoZoom>(INICIAL);
   const [area, setArea] = useState<HTMLDivElement | null>(null);
   const punteros = useRef(new Map<number, { x: number; y: number }>());
+  const inicioGesto = useRef({ x: 0, y: 0 });
+  const huboMovimiento = useRef(false);
 
   function cambiarAbierto(a: boolean) {
     setAbierto(a);
@@ -61,6 +65,12 @@ export function VisorImagen({ url, alt, className }: Props) {
 
   function alPresionar(e: EventoPuntero<HTMLDivElement>) {
     e.currentTarget.setPointerCapture?.(e.pointerId);
+    if (punteros.current.size === 0) {
+      inicioGesto.current = { x: e.clientX, y: e.clientY };
+      huboMovimiento.current = false;
+    } else {
+      huboMovimiento.current = true; // un segundo dedo: es un pellizco, no un clic
+    }
     punteros.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
   }
 
@@ -68,6 +78,9 @@ export function VisorImagen({ url, alt, className }: Props) {
     const mapa = punteros.current;
     const anterior = mapa.get(e.pointerId);
     if (!anterior) return;
+    if (Math.hypot(e.clientX - inicioGesto.current.x, e.clientY - inicioGesto.current.y) > UMBRAL_CLIC) {
+      huboMovimiento.current = true;
+    }
     if (mapa.size === 1) {
       setZoom((z) => desplazar(z, e.clientX - anterior.x, e.clientY - anterior.y));
     } else if (mapa.size === 2) {
@@ -88,9 +101,14 @@ export function VisorImagen({ url, alt, className }: Props) {
     punteros.current.delete(e.pointerId);
   }
 
-  function alDobleClic(clientX: number, clientY: number) {
+  /** Un clic (o toque) alterna el zoom sobre ese punto; se ignora si fue el final de un arrastre o pellizco. */
+  function alClic(clientX: number, clientY: number) {
+    if (huboMovimiento.current) {
+      huboMovimiento.current = false;
+      return;
+    }
     const p = relativo(clientX, clientY);
-    setZoom((z) => zoomEnPunto(z, z.escala === ESCALA_MIN ? ESCALA_DOBLE_CLIC : ESCALA_MIN, p.x, p.y));
+    setZoom((z) => zoomEnPunto(z, z.escala === ESCALA_MIN ? ESCALA_CLIC : ESCALA_MIN, p.x, p.y));
   }
 
   const z = mensajes.boletas.zoom;
@@ -107,7 +125,7 @@ export function VisorImagen({ url, alt, className }: Props) {
         <img src={url} alt={alt} className={cn('w-full rounded-lg object-contain', className)} />
       </button>
       <Dialog open={abierto} onOpenChange={cambiarAbierto}>
-        <DialogContent className="flex h-dvh w-screen max-w-none flex-col gap-0 rounded-none bg-black/95 p-0 text-white ring-0 sm:max-w-none">
+        <DialogContent className="flex h-dvh w-screen max-w-none flex-col gap-0 rounded-none bg-neutral-900/80 p-0 text-white ring-0 backdrop-blur-md sm:max-w-none">
           <DialogTitle className="sr-only">{z.titulo}</DialogTitle>
           <div
             ref={setArea}
@@ -116,7 +134,7 @@ export function VisorImagen({ url, alt, className }: Props) {
             onPointerMove={alMover}
             onPointerUp={alSoltar}
             onPointerCancel={alSoltar}
-            onDoubleClick={(e) => alDobleClic(e.clientX, e.clientY)}
+            onClick={(e) => alClic(e.clientX, e.clientY)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- URL blob: local, next/image no aplica */}
             <img
@@ -126,7 +144,7 @@ export function VisorImagen({ url, alt, className }: Props) {
               draggable={false}
               className={cn(
                 'max-h-full max-w-full object-contain',
-                zoom.escala > ESCALA_MIN ? 'cursor-grab' : 'cursor-zoom-in',
+                zoom.escala > ESCALA_MIN ? 'cursor-zoom-out' : 'cursor-zoom-in',
               )}
               style={{ transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.escala})` }}
             />
