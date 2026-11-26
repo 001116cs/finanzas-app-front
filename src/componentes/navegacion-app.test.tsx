@@ -19,6 +19,10 @@ describe('NavegacionApp', () => {
       'href',
       '/importar',
     );
+    expect(screen.getByRole('link', { name: mensajes.navegacion.boletas })).toHaveAttribute(
+      'href',
+      '/boletas',
+    );
     expect(screen.getByRole('link', { name: mensajes.navegacion.ajustes })).toHaveAttribute(
       'href',
       '/ajustes',
@@ -33,6 +37,7 @@ describe('NavegacionApp', () => {
       mensajes.navegacion.inicio,
       mensajes.navegacion.categorias,
       mensajes.navegacion.importar,
+      mensajes.navegacion.boletas,
       mensajes.navegacion.ajustes,
     ]);
     expect(screen.getByRole('navigation').className).toContain('overflow-x-auto');

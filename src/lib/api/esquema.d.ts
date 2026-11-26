@@ -164,6 +164,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/uso-ia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["UsoIaController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boletas/escanear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BoletasController_postEscanear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boletas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BoletasController_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boletas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BoletasController_get"];
+        put?: never;
+        post?: never;
+        delete: operations["BoletasController_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/boletas/{id}/imagen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BoletasController_getImagen"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -254,6 +334,11 @@ export interface components {
             categoriaNombre: string | null;
             /** @enum {string} */
             origen: "manual" | "excel" | "boleta";
+            /**
+             * Format: uuid
+             * @description Boleta de la que proviene el gasto; null si no aplica
+             */
+            boletaId: string | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -355,6 +440,72 @@ export interface components {
             id: string;
             nombreArchivo: string;
             filasImportadas: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        BoletasUsoRespuesta: {
+            /** @description Boletas procesadas este mes */
+            usadas: number;
+            /** @description Máximo de boletas por mes */
+            limite: number;
+        };
+        IntentosFallidosUsoRespuesta: {
+            /** @description Intentos fallidos este mes */
+            usados: number;
+            /** @description Máximo de intentos fallidos por mes */
+            limite: number;
+        };
+        UsoIaRespuesta: {
+            /**
+             * @description Mes (YYYY-MM) en la zona del usuario
+             * @example 2026-11
+             */
+            mes: string;
+            boletas: components["schemas"]["BoletasUsoRespuesta"];
+            intentosFallidos: components["schemas"]["IntentosFallidosUsoRespuesta"];
+            /** @description true si se agotó el tope global mensual de IA */
+            globalAgotado: boolean;
+        };
+        ProductoLeidoRespuesta: {
+            descripcion: string;
+            /**
+             * @description Con 2 decimales; puede ser negativo (descuentos)
+             * @example 12.50
+             */
+            monto: string;
+            /**
+             * Format: uuid
+             * @description Categoría de gasto del usuario sugerida; null si no hay
+             */
+            categoriaId: string | null;
+        };
+        LecturaBoletaRespuesta: {
+            comercio: string;
+            /**
+             * @description YYYY-MM-DD; null si no se pudo leer
+             * @example 2026-11-19
+             */
+            fecha: string | null;
+            /** @example 23.40 */
+            totalImpreso: string | null;
+            productos: components["schemas"]["ProductoLeidoRespuesta"][];
+        };
+        GuardarBoletaRespuesta: {
+            /** Format: uuid */
+            id: string;
+            gastosCreados: number;
+        };
+        BoletaRespuesta: {
+            /** Format: uuid */
+            id: string;
+            comercio: string;
+            /**
+             * @description YYYY-MM-DD
+             * @example 2026-11-19
+             */
+            fecha: string;
+            /** @example 23.40 */
+            totalImpreso: string | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -1146,6 +1297,314 @@ export interface operations {
                 };
             };
             /** @description PERFIL_REQUERIDO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    UsoIaController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Uso de IA del usuario en el mes actual y sus límites */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsoIaRespuesta"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    BoletasController_postEscanear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description JPEG, PNG o WebP, máx. 5 MB
+                     */
+                    imagen: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Lectura de la boleta; no se guarda nada (sólo se cuenta el uso) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LecturaBoletaRespuesta"];
+                };
+            };
+            /** @description IMAGEN_INVALIDA */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO (en escanear también LIMITE_BOLETAS, LIMITE_INTENTOS_FALLIDOS o LIMITE_GLOBAL_IA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description BOLETA_ILEGIBLE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description IA_NO_DISPONIBLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    BoletasController_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description JPEG, PNG o WebP, máx. 5 MB
+                     */
+                    imagen: string;
+                    /** @description JSON de GuardarBoletaDto: { comercio, fecha, totalImpreso, productos: [{ descripcion, monto, categoriaId }] } */
+                    datos: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardarBoletaRespuesta"];
+                };
+            };
+            /** @description IMAGEN_INVALIDA, VALIDACION, COMERCIO_INVALIDO, PRODUCTOS_INVALIDOS, FECHA_INVALIDA o error de un producto (incluye `fila`); no se guarda nada */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO (en escanear también LIMITE_BOLETAS, LIMITE_INTENTOS_FALLIDOS o LIMITE_GLOBAL_IA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    BoletasController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoletaRespuesta"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO (en escanear también LIMITE_BOLETAS, LIMITE_INTENTOS_FALLIDOS o LIMITE_GLOBAL_IA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    BoletasController_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Boleta e imagen eliminadas; los gastos creados se conservan sin enlace a la boleta */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO (en escanear también LIMITE_BOLETAS, LIMITE_INTENTOS_FALLIDOS o LIMITE_GLOBAL_IA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+        };
+    };
+    BoletasController_getImagen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bytes de la imagen original de la boleta */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": components["schemas"]["ErrorRespuesta"];
+                    "image/png": components["schemas"]["ErrorRespuesta"];
+                    "image/webp": components["schemas"]["ErrorRespuesta"];
+                };
+            };
+            /** @description PERFIL_REQUERIDO (en escanear también LIMITE_BOLETAS, LIMITE_INTENTOS_FALLIDOS o LIMITE_GLOBAL_IA) */
             409: {
                 headers: {
                     [name: string]: unknown;

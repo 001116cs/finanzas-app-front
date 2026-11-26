@@ -9,6 +9,7 @@ const ENLACES = [
   { href: '/', texto: mensajes.navegacion.inicio },
   { href: '/categorias', texto: mensajes.navegacion.categorias },
   { href: '/importar', texto: mensajes.navegacion.importar },
+  { href: '/boletas', texto: mensajes.navegacion.boletas },
   { href: '/ajustes', texto: mensajes.navegacion.ajustes },
 ];
 

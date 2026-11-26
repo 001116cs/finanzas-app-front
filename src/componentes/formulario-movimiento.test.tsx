@@ -101,7 +101,7 @@ describe('FormularioMovimiento', () => {
       descripcion: 'Pago',
       categoriaId: 'i1',
       categoriaNombre: 'Sueldo',
-      origen: 'manual' as const,
+      origen: 'manual' as const, boletaId: null,
       createdAt: '2026-11-05T10:00:00Z',
     };
 
@@ -167,12 +167,34 @@ describe('FormularioMovimiento', () => {
   it('al editar usa el tipo del movimiento aunque tipoInicial diga otro', () => {
     const existente = {
       id: 'x1', tipo: 'gasto' as const, monto: '5.00', fecha: '2026-11-10', descripcion: 'pan',
-      categoriaId: 'g1', categoriaNombre: 'Comida', origen: 'manual' as const, createdAt: '2026-11-10T00:00:00Z',
+      categoriaId: 'g1', categoriaNombre: 'Comida', origen: 'manual' as const, boletaId: null, createdAt: '2026-11-10T00:00:00Z',
     };
     render(
       <FormularioMovimiento categorias={categorias} inicial={existente} tipoInicial="ingreso" onGuardado={vi.fn()} />,
     );
     expect(screen.getByLabelText(mensajes.movimiento.tipo)).toHaveValue('gasto');
   });
-});
 
+  describe('boleta', () => {
+    const base = {
+      id: 'x2', tipo: 'gasto' as const, monto: '5.00', fecha: '2026-11-10', descripcion: 'pan',
+      categoriaId: 'g1', categoriaNombre: 'Comida', origen: 'boleta' as const, createdAt: '2026-11-10T00:00:00Z',
+    };
+
+    it('muestra "Ver boleta" sólo si el movimiento tiene boletaId', () => {
+      const { rerender } = render(
+        <FormularioMovimiento categorias={categorias} inicial={{ ...base, boletaId: 'b1' }} onGuardado={vi.fn()} />,
+      );
+      expect(screen.getByRole('button', { name: mensajes.boletas.ver })).toBeInTheDocument();
+      rerender(
+        <FormularioMovimiento categorias={categorias} inicial={{ ...base, boletaId: null }} onGuardado={vi.fn()} />,
+      );
+      expect(screen.queryByRole('button', { name: mensajes.boletas.ver })).toBeNull();
+    });
+
+    it('no muestra "Ver boleta" en un movimiento nuevo', () => {
+      render(<FormularioMovimiento categorias={categorias} onGuardado={vi.fn()} />);
+      expect(screen.queryByRole('button', { name: mensajes.boletas.ver })).toBeNull();
+    });
+  });
+});

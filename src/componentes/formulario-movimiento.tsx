@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { DialogoBoleta } from '@/componentes/boletas/dialogo-boleta';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { components } from '@/lib/api/esquema';
@@ -43,6 +44,7 @@ export function FormularioMovimiento({ categorias, inicial, tipoInicial, onGuard
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
+  const [verBoleta, setVerBoleta] = useState(false);
 
   const montoNormalizado = normalizarMontoEntrada(monto.trim());
   const montoInvalido = monto.trim() !== '' && montoNormalizado === null;
@@ -163,6 +165,19 @@ export function FormularioMovimiento({ categorias, inicial, tipoInicial, onGuard
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
+      )}
+      {inicial?.boletaId && (
+        <>
+          <Button type="button" variant="outline" onClick={() => setVerBoleta(true)}>
+            {mensajes.boletas.ver}
+          </Button>
+          <DialogoBoleta
+            boletaId={inicial.boletaId}
+            abierto={verBoleta}
+            onCerrar={() => setVerBoleta(false)}
+            onEliminada={onGuardado}
+          />
+        </>
       )}
       <div className="flex gap-2">
         <Button type="submit" disabled={!valido || enviando} className="flex-1">
