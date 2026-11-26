@@ -1,15 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,10 +10,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { eliminarBoleta, obtenerBoleta, obtenerImagenBoleta, type Boleta } from '@/lib/api/boletas';
+import {
+  eliminarBoleta,
+  obtenerBoleta,
+  obtenerImagenBoleta,
+  type Boleta,
+  type ModoEliminarBoleta,
+} from '@/lib/api/boletas';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
 import { formatearFecha } from '@/lib/fechas';
 import { mensajes } from '@/mensajes/es';
+import { ConfirmarEliminarBoleta } from './confirmar-eliminar-boleta';
 
 type Props = {
   boletaId: string;
@@ -61,11 +59,11 @@ export function DialogoBoleta({ boletaId, abierto, onCerrar, onEliminada }: Prop
     };
   }, [abierto, api, boletaId]);
 
-  async function eliminar() {
+  async function eliminar(modo: ModoEliminarBoleta) {
     setError(null);
     setEliminando(true);
     try {
-      await eliminarBoleta(api, boletaId);
+      await eliminarBoleta(api, boletaId, modo);
       setConfirmando(false);
       onEliminada();
       onCerrar();
@@ -123,20 +121,13 @@ export function DialogoBoleta({ boletaId, abierto, onCerrar, onEliminada }: Prop
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={confirmando} onOpenChange={setConfirmando}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{mensajes.boletas.eliminar}</AlertDialogTitle>
-            <AlertDialogDescription>{mensajes.boletas.confirmarEliminar}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={eliminando}>{mensajes.acciones.cancelar}</AlertDialogCancel>
-            <Button variant="destructive" disabled={eliminando} onClick={() => void eliminar()}>
-              {mensajes.acciones.eliminar}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmarEliminarBoleta
+        abierto={confirmando}
+        onAbiertoChange={setConfirmando}
+        numGastos={boleta?.gastos?.length ?? 0}
+        eliminando={eliminando}
+        onElegir={(modo) => void eliminar(modo)}
+      />
     </>
   );
 }

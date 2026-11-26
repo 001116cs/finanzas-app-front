@@ -65,7 +65,28 @@ describe('DialogoBoleta', () => {
     expect(del).not.toHaveBeenCalled();
     await u.click(screen.getByRole('button', { name: mensajes.acciones.eliminar }));
     await waitFor(() => expect(onEliminada).toHaveBeenCalled());
-    expect(del).toHaveBeenCalledWith('/boletas/{id}', { params: { path: { id: 'b1' } } });
+    expect(del).toHaveBeenCalledWith('/boletas/{id}', {
+      params: { path: { id: 'b1' }, query: { gastos: 'conservar' } },
+    });
+  });
+
+  it('con gastos, elegir eliminar boleta y gastos envía gastos=eliminar y llama onEliminada', async () => {
+    get.mockImplementation(async (ruta: string) =>
+      ruta === '/boletas/{id}'
+        ? { data: { ...boleta, gastos: [{ id: 'g1' }, { id: 'g2' }] } }
+        : { data: new Blob(['x'], { type: 'image/jpeg' }) },
+    );
+    const { onEliminada, onCerrar } = montar();
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole('button', { name: mensajes.boletas.eliminar }));
+    await u.click(
+      await screen.findByRole('button', { name: mensajes.boletas.eliminarOpciones.conGastos(2) }),
+    );
+    await waitFor(() => expect(onEliminada).toHaveBeenCalled());
+    expect(onCerrar).toHaveBeenCalled();
+    expect(del).toHaveBeenCalledWith('/boletas/{id}', {
+      params: { path: { id: 'b1' }, query: { gastos: 'eliminar' } },
+    });
   });
 
   it('revoca la URL al desmontar', async () => {

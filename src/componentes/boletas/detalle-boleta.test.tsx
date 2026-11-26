@@ -111,9 +111,24 @@ describe('DetalleBoleta', () => {
     await screen.findByText('Leche');
     await userEvent.click(screen.getByRole('button', { name: mensajes.boletas.eliminar }));
     expect(b.eliminarBoleta).not.toHaveBeenCalled();
-    expect(await screen.findByText(mensajes.boletas.confirmarEliminar)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: mensajes.acciones.eliminar }));
-    await waitFor(() => expect(b.eliminarBoleta).toHaveBeenCalledWith(api, 'b1'));
+    expect(
+      await screen.findByText(mensajes.boletas.eliminarOpciones.pregunta(1)),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: new RegExp(mensajes.boletas.eliminarOpciones.soloBoleta) }),
+    );
+    await waitFor(() => expect(b.eliminarBoleta).toHaveBeenCalledWith(api, 'b1', 'conservar'));
+    expect(push).toHaveBeenCalledWith('/boletas');
+  });
+
+  it('elegir eliminar boleta y sus gastos pasa el modo eliminar', async () => {
+    render(<DetalleBoleta id="b1" />);
+    await screen.findByText('Leche');
+    await userEvent.click(screen.getByRole('button', { name: mensajes.boletas.eliminar }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: mensajes.boletas.eliminarOpciones.conGastos(1) }),
+    );
+    await waitFor(() => expect(b.eliminarBoleta).toHaveBeenCalledWith(api, 'b1', 'eliminar'));
     expect(push).toHaveBeenCalledWith('/boletas');
   });
 

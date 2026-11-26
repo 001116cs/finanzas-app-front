@@ -76,8 +76,14 @@ export async function obtenerImagenBoleta(api: ClienteApi, id: string): Promise<
   return data as unknown as Blob;
 }
 
-export async function eliminarBoleta(api: ClienteApi, id: string): Promise<void> {
-  await api.DELETE('/boletas/{id}', { params: { path: { id } } });
+export type ModoEliminarBoleta = 'conservar' | 'eliminar';
+
+export async function eliminarBoleta(
+  api: ClienteApi,
+  id: string,
+  gastos: ModoEliminarBoleta = 'conservar',
+): Promise<void> {
+  await api.DELETE('/boletas/{id}', { params: { path: { id }, query: { gastos } } });
 }
 
 export async function listarBoletas(

@@ -3,15 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +16,7 @@ import {
   type CambiosBoleta,
   type DetalleBoleta as Detalle,
   type GastoBoleta,
+  type ModoEliminarBoleta,
 } from '@/lib/api/boletas';
 import { ErrorApi } from '@/lib/api/cliente';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
@@ -32,6 +24,7 @@ import { formatearFecha } from '@/lib/fechas';
 import { normalizarMontoEntrada } from '@/lib/monto';
 import { useCategorias } from '@/lib/usar-datos-periodo';
 import { mensajes } from '@/mensajes/es';
+import { ConfirmarEliminarBoleta } from './confirmar-eliminar-boleta';
 import { FormularioCabeceraBoleta } from './formulario-cabecera-boleta';
 import { VisorImagen } from './visor-imagen';
 
@@ -147,11 +140,11 @@ export function DetalleBoleta({ id }: { id: string }) {
     }
   }
 
-  async function eliminar() {
+  async function eliminar(modo: ModoEliminarBoleta) {
     setEliminando(true);
     setErrorEliminar(null);
     try {
-      await eliminarBoleta(api, id);
+      await eliminarBoleta(api, id, modo);
       router.push('/boletas');
     } catch (err) {
       setErrorEliminar(mensajeDeError(err));
@@ -298,20 +291,13 @@ export function DetalleBoleta({ id }: { id: string }) {
         {mensajes.boletas.eliminar}
       </Button>
 
-      <AlertDialog open={confirmando} onOpenChange={setConfirmando}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{mensajes.boletas.eliminar}</AlertDialogTitle>
-            <AlertDialogDescription>{mensajes.boletas.confirmarEliminar}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={eliminando}>{mensajes.acciones.cancelar}</AlertDialogCancel>
-            <Button variant="destructive" disabled={eliminando} onClick={() => void eliminar()}>
-              {mensajes.acciones.eliminar}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmarEliminarBoleta
+        abierto={confirmando}
+        onAbiertoChange={setConfirmando}
+        numGastos={boleta.gastos?.length ?? 0}
+        eliminando={eliminando}
+        onElegir={(modo) => void eliminar(modo)}
+      />
 
       <PanelMovimiento
         abierto={gastoAbierto !== null}

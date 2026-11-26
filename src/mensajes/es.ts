@@ -153,6 +153,14 @@ export const mensajes = {
     ver: 'Ver boleta',
     eliminar: 'Eliminar boleta',
     confirmarEliminar: 'Se borrará la boleta y su foto. Sus gastos se conservan.',
+    eliminarOpciones: {
+      pregunta: (n: number) =>
+        `Esta boleta tiene ${n === 1 ? '1 gasto' : `${n} gastos`}. ¿Qué hacemos con ${n === 1 ? 'él' : 'ellos'}?`,
+      soloBoleta: 'Eliminar solo la boleta',
+      soloBoletaDetalle: 'Los gastos se conservan',
+      conGastos: (n: number) =>
+        `Eliminar boleta y ${n === 1 ? 'su gasto' : `sus ${n} gastos`}`,
+    },
     volverAEscanear: 'Volver a escanear',
     verFoto: 'Ver foto',
     fotoAlt: 'Foto de la boleta',
@@ -170,6 +178,8 @@ export const mensajes = {
       movimientoDescripcion: 'Anota un gasto o ingreso a mano',
       boleta: 'Subir boleta',
       boletaDescripcion: 'Elige la foto de una boleta y la IA la lee',
+      foto: 'Tomar foto',
+      fotoDescripcion: 'Fotografía la boleta con la cámara y la IA la lee',
     },
     nueva: {
       titulo: 'Subir boleta',

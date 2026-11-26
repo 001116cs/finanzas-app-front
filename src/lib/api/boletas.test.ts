@@ -103,6 +103,18 @@ describe('boletas', () => {
     expect(new URL(pedido(fetchMock).url).pathname).toBe('/boletas/b1');
   });
 
+  it('eliminarBoleta envía gastos=eliminar o conservar por defecto', async () => {
+    const f1 = vi.fn().mockResolvedValue(json(204));
+    await eliminarBoleta(crearClienteApi(async () => 't', f1), 'b1', 'eliminar');
+    expect(pedido(f1).method).toBe('DELETE');
+    const u1 = new URL(pedido(f1).url);
+    expect(u1.pathname).toBe('/boletas/b1');
+    expect(u1.search).toBe('?gastos=eliminar');
+    const f2 = vi.fn().mockResolvedValue(json(204));
+    await eliminarBoleta(crearClienteApi(async () => 't', f2), 'b1');
+    expect(new URL(pedido(f2).url).search).toBe('?gastos=conservar');
+  });
+
   it('listarBoletas pide GET /boletas con pagina y tamano', async () => {
     const lista = { items: [], total: 0 };
     const fetchMock = vi.fn().mockResolvedValue(json(200, lista));

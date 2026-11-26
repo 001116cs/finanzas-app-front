@@ -1633,7 +1633,10 @@ export interface operations {
     };
     BoletasController_delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Qué hacer con los gastos creados desde la boleta: 'conservar' (por defecto) los deja sin enlace; 'eliminar' los borra junto con la boleta */
+                gastos?: "conservar" | "eliminar";
+            };
             header?: never;
             path: {
                 id: string;
@@ -1642,7 +1645,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Boleta e imagen eliminadas; los gastos creados se conservan sin enlace a la boleta */
+            /** @description Boleta e imagen eliminadas; con gastos=conservar (por defecto) los gastos creados se conservan sin enlace a la boleta, con gastos=eliminar también se borran sus gastos */
             204: {
                 headers: {
                     [name: string]: unknown;
