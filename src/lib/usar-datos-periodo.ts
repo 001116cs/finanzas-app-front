@@ -5,6 +5,7 @@ import type { components } from '@/lib/api/esquema';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
 import { mensajes } from '@/mensajes/es';
 import { periodoAParams, type Periodo } from '@/lib/periodos';
+import type { OrdenVista } from '@/lib/orden-vista';
 import type { TipoVista } from '@/lib/tipo-vista';
 
 type Resumen = components['schemas']['ResumenRespuesta'];
@@ -17,7 +18,7 @@ const TAMANO = 20;
  * Carga /resumen con los parámetros del período y usa el desde/hasta que
  * devuelve para listar /transacciones, así totales y lista cubren el mismo rango.
  */
-export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista) {
+export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista, orden: OrdenVista = 'reciente') {
   const api = useApi();
   const [resumen, setResumen] = useState<Resumen | null>(null);
   const [items, setItems] = useState<Transaccion[]>([]);
@@ -27,15 +28,15 @@ export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista) {
   const [cargandoMas, setCargandoMas] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
-  // El tipo va en la clave: cambiarlo recarga y descarta un "cargar más" pendiente.
-  const clave = JSON.stringify({ periodo, tipo });
+  // Tipo y orden van en la clave: cambiarlos recarga y descarta un "cargar más" pendiente.
+  const clave = JSON.stringify({ periodo, tipo, orden });
   const generacion = useRef(0);
   const ultimaClave = useRef(clave);
 
   useEffect(() => {
     let activo = true;
     generacion.current++;
-    // Al cambiar período o tipo, la lista anterior ya no corresponde: se vacía.
+    // Al cambiar período, tipo u orden, la lista anterior ya no corresponde: se vacía.
     // Un simple refrescar (misma clave) la conserva mientras recarga.
     const cambioClave = ultimaClave.current !== clave;
     ultimaClave.current = clave;
@@ -48,13 +49,17 @@ export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista) {
         setTotal(0);
       }
       try {
-        const { periodo: p, tipo: t } = JSON.parse(clave) as { periodo: Periodo; tipo: TipoVista };
+        const { periodo: p, tipo: t, orden: o } = JSON.parse(clave) as {
+          periodo: Periodo;
+          tipo: TipoVista;
+          orden: OrdenVista;
+        };
         const { data: r } = await api.GET('/resumen', {
           params: { query: periodoAParams(p) },
         });
         if (!r) throw new Error('sin datos');
         const { data: l } = await api.GET('/transacciones', {
-          params: { query: { desde: r.desde, hasta: r.hasta, tipo: t, pagina: 1, tamano: TAMANO } },
+          params: { query: { desde: r.desde, hasta: r.hasta, tipo: t, orden: o, pagina: 1, tamano: TAMANO } },
         });
         if (!l) throw new Error('sin datos');
         if (!activo) return;
@@ -80,7 +85,7 @@ export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista) {
     try {
       const { data: l } = await api.GET('/transacciones', {
         params: {
-          query: { desde: resumen.desde, hasta: resumen.hasta, tipo, pagina: pagina + 1, tamano: TAMANO },
+          query: { desde: resumen.desde, hasta: resumen.hasta, tipo, orden, pagina: pagina + 1, tamano: TAMANO },
         },
       });
       if (miGeneracion !== generacion.current) return;
@@ -94,7 +99,7 @@ export function useDatosPeriodo(periodo: Periodo, tipo: TipoVista) {
     } finally {
       if (miGeneracion === generacion.current) setCargandoMas(false);
     }
-  }, [api, resumen, pagina, tipo, cargando]);
+  }, [api, resumen, pagina, tipo, orden, cargando]);
 
   const refrescar = useCallback(() => setVersion((v) => v + 1), []);
 

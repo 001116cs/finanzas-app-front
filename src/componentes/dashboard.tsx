@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { components } from '@/lib/api/esquema';
+import { ordenDesdeQuery, type OrdenVista } from '@/lib/orden-vista';
 import { periodoAQuery, periodoDesdeQuery, type Periodo } from '@/lib/periodos';
 import { construirQuery, tipoDesdeQuery, type TipoVista } from '@/lib/tipo-vista';
 import { useCategorias, useDatosPeriodo } from '@/lib/usar-datos-periodo';
@@ -12,6 +13,7 @@ import { BotonNuevo, PanelMovimiento } from './boton-nuevo';
 import { DesgloseCategorias } from './desglose-categorias';
 import { ListaMovimientos } from './lista-movimientos';
 import { ResumenTotales } from './resumen-totales';
+import { SelectorOrden } from './selector-orden';
 import { SelectorPeriodo } from './selector-periodo';
 import { SelectorTipo } from './selector-tipo';
 
@@ -24,21 +26,22 @@ export function Dashboard() {
   const params = new URLSearchParams(query.toString());
   const periodo = periodoDesdeQuery(params);
   const tipo = tipoDesdeQuery(params);
+  const orden = ordenDesdeQuery(params);
   const { resumen, items, total, cargando, cargandoMas, error, cargarMas, refrescar } =
-    useDatosPeriodo(periodo, tipo);
+    useDatosPeriodo(periodo, tipo, orden);
   const { categorias, error: errorCategorias } = useCategorias();
   const [editando, setEditando] = useState<Transaccion | null>(null);
 
-  // Período y tipo comparten la URL: cambiar uno conserva el otro.
-  function navegar(p: Periodo, t: TipoVista) {
-    const q = construirQuery(periodoAQuery(p), t);
+  // Período, tipo y orden comparten la URL: cambiar uno conserva los otros.
+  function navegar(p: Periodo, t: TipoVista, o: OrdenVista) {
+    const q = construirQuery(periodoAQuery(p), t, o);
     router.replace(q ? `${pathname}?${q}` : pathname);
   }
 
   return (
     <div className="grid gap-6 pb-24">
-      <SelectorPeriodo valor={periodo} onCambio={(p) => navegar(p, tipo)} />
-      <SelectorTipo valor={tipo} onCambio={(t) => navegar(periodo, t)} />
+      <SelectorPeriodo valor={periodo} onCambio={(p) => navegar(p, tipo, orden)} />
+      <SelectorTipo valor={tipo} onCambio={(t) => navegar(periodo, t, orden)} />
       {error && (
         <div role="alert" className="grid gap-2 text-sm text-destructive">
           <p>{error}</p>
@@ -70,6 +73,7 @@ export function Dashboard() {
             cargandoMas={cargandoMas || cargando}
             onEditar={setEditando}
             onCargarMas={cargarMas}
+            acciones={<SelectorOrden valor={orden} onCambio={(o) => navegar(periodo, tipo, o)} />}
           />
         </>
       )}

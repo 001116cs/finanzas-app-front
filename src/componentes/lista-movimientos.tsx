@@ -13,12 +13,16 @@ type Props = {
   cargandoMas: boolean;
   onEditar: (t: Transaccion) => void;
   onCargarMas: () => void;
+  acciones?: React.ReactNode;
 };
 
-export function ListaMovimientos({ items, total, moneda, cargandoMas, onEditar, onCargarMas }: Props) {
+export function ListaMovimientos({ items, total, moneda, cargandoMas, onEditar, onCargarMas, acciones }: Props) {
   return (
     <section className="grid gap-3">
-      <h2 className="text-lg font-semibold">{mensajes.dashboard.movimientos}</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">{mensajes.dashboard.movimientos}</h2>
+        {acciones}
+      </div>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{mensajes.dashboard.sinMovimientos}</p>
       ) : (

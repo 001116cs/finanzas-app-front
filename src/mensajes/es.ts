@@ -92,6 +92,14 @@ export const mensajes = {
     editarMovimiento: 'Editar movimiento',
     gasto: 'Gasto',
     ingreso: 'Ingreso',
+    orden: {
+      etiqueta: 'Ordenar',
+      reciente: 'Recientes',
+      fecha: 'Por fecha',
+      direccion: 'Dirección',
+      masRecientes: 'Más recientes',
+      masAntiguos: 'Más antiguos',
+    },
   },
   tipoVista: {
     etiqueta: 'Ver',

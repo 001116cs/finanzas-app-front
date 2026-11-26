@@ -946,6 +946,8 @@ export interface operations {
                 tipo?: "gasto" | "ingreso";
                 /** @description UUID o "sin" para las que no tienen categoría */
                 categoriaId?: string;
+                /** @description fecha: por fecha del movimiento, la más reciente primero. fecha_asc: por fecha, la más antigua primero. reciente: por momento de registro (el último primero). */
+                orden?: "fecha" | "fecha_asc" | "reciente";
                 pagina?: number;
                 tamano?: number;
             };

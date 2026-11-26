@@ -30,4 +30,21 @@ describe('construirQuery', () => {
       'desde=2026-01-01&hasta=2026-01-31',
     );
   });
+
+  it('agrega orden=fecha', () => {
+    expect(construirQuery('', 'gasto', 'fecha')).toBe('orden=fecha');
+  });
+  it('no escribe orden cuando es reciente', () => {
+    expect(construirQuery('', 'gasto', 'reciente')).toBe('');
+    expect(construirQuery('', 'ingreso')).toBe('tipo=ingreso');
+  });
+  it('combina período, tipo y orden', () => {
+    expect(construirQuery('periodo=mes_anterior', 'ingreso', 'fecha')).toBe(
+      'periodo=mes_anterior&tipo=ingreso&orden=fecha',
+    );
+  });
+
+  it('construirQuery escribe orden=fecha_asc', () => {
+    expect(construirQuery('', 'gasto', 'fecha_asc')).toBe('orden=fecha_asc');
+  });
 });

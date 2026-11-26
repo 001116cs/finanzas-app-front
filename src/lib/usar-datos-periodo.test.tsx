@@ -24,7 +24,7 @@ describe('useDatosPeriodo', () => {
     await waitFor(() => expect(result.current.resumen).not.toBeNull());
     expect(get).toHaveBeenCalledWith('/resumen', { params: { query: {} } });
     expect(get).toHaveBeenCalledWith('/transacciones', {
-      params: { query: { desde: '2026-11-01', hasta: '2026-11-30', tipo: 'gasto', pagina: 1, tamano: 20 } },
+      params: { query: { desde: '2026-11-01', hasta: '2026-11-30', tipo: 'gasto', orden: 'reciente', pagina: 1, tamano: 20 } },
     });
   });
 
@@ -33,7 +33,7 @@ describe('useDatosPeriodo', () => {
     const { result } = renderHook(() => useDatosPeriodo({ clave: 'este_mes' }, 'ingreso'));
     await waitFor(() => expect(result.current.resumen).not.toBeNull());
     expect(get).toHaveBeenCalledWith('/transacciones', {
-      params: { query: { desde: '2026-11-01', hasta: '2026-11-30', tipo: 'ingreso', pagina: 1, tamano: 20 } },
+      params: { query: { desde: '2026-11-01', hasta: '2026-11-30', tipo: 'ingreso', orden: 'reciente', pagina: 1, tamano: 20 } },
     });
   });
 });
