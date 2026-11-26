@@ -33,6 +33,7 @@ import { normalizarMontoEntrada } from '@/lib/monto';
 import { useCategorias } from '@/lib/usar-datos-periodo';
 import { mensajes } from '@/mensajes/es';
 import { FormularioCabeceraBoleta } from './formulario-cabecera-boleta';
+import { VisorImagen } from './visor-imagen';
 
 const d = mensajes.boletas.detalle;
 const IMAGEN_NO_DISPONIBLE = 'No se pudo cargar la imagen de la boleta.';
@@ -193,12 +194,7 @@ export function DetalleBoleta({ id }: { id: string }) {
         </p>
       )}
       {urlImagen && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={urlImagen}
-          alt={mensajes.boletas.fotoAlt}
-          className="max-h-[60vh] w-full rounded-lg object-contain"
-        />
+        <VisorImagen url={urlImagen} alt={mensajes.boletas.fotoAlt} className="max-h-[60vh]" />
       )}
       <FormularioCabeceraBoleta
         key={`${boleta.comercio}|${boleta.fecha}|${boleta.totalImpreso ?? ''}`}

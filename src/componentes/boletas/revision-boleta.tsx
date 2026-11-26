@@ -9,6 +9,7 @@ import { ErrorApi } from '@/lib/api/cliente';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
 import { useCategorias } from '@/lib/usar-datos-periodo';
 import { mensajes } from '@/mensajes/es';
+import { VisorImagen } from './visor-imagen';
 import {
   aDatosGuardar,
   diferenciaConTotal,
@@ -31,8 +32,7 @@ function hoyLocal(): string {
 const verCentavos = (c: number) => (c / 100).toFixed(2);
 
 function Foto({ url }: { url: string }) {
-  // eslint-disable-next-line @next/next/no-img-element -- URL blob: local, next/image no aplica
-  return <img src={url} alt={mensajes.boletas.fotoAlt} className="max-h-[70vh] w-full rounded-lg object-contain" />;
+  return <VisorImagen url={url} alt={mensajes.boletas.fotoAlt} className="max-h-[70vh]" />;
 }
 
 export function RevisionBoleta({

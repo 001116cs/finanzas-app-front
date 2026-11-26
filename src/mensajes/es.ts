@@ -156,6 +156,13 @@ export const mensajes = {
     volverAEscanear: 'Volver a escanear',
     verFoto: 'Ver foto',
     fotoAlt: 'Foto de la boleta',
+    zoom: {
+      abrir: 'Ampliar imagen',
+      titulo: 'Imagen de la boleta',
+      acercar: 'Acercar',
+      alejar: 'Alejar',
+      restablecer: 'Tamaño original',
+    },
     verMovimientos: 'Ver movimientos',
     menu: {
       titulo: 'Nuevo',
