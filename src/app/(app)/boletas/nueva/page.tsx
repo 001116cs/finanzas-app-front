@@ -1,14 +1,20 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EscanerBoleta } from '@/componentes/boletas/escaner-boleta';
 import { RevisionBoleta } from '@/componentes/boletas/revision-boleta';
 import type { LecturaBoleta } from '@/lib/api/boletas';
 import { mensajes } from '@/mensajes/es';
 
-export default function NuevaBoleta() {
+export default function NuevaBoleta({
+  searchParams,
+}: {
+  searchParams: Promise<{ [clave: string]: string | string[] | undefined }>;
+}) {
+  // `?camara=1` (desde "Tomar foto" del +) muestra también el botón de la cámara.
+  const conCamara = use(searchParams).camara === '1';
   const router = useRouter();
   const [escaneo, setEscaneo] = useState<{ lectura: LecturaBoleta; imagen: Blob } | null>(null);
   return (
@@ -21,7 +27,7 @@ export default function NuevaBoleta() {
           {escaneo === null ? (
             <div className="grid gap-3">
               <EscanerBoleta
-                permitirCamara={false}
+                permitirCamara={conCamara}
                 onLeida={(lectura, imagen) => setEscaneo({ lectura, imagen })}
               />
               <button type="button" onClick={() => router.back()} className="text-sm underline">

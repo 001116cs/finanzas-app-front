@@ -110,11 +110,13 @@ function MenuNuevo({
   abierto,
   onAbiertoChange,
   onMovimiento,
+  onFoto,
   onBoleta,
 }: {
   abierto: boolean;
   onAbiertoChange: (a: boolean) => void;
   onMovimiento: () => void;
+  onFoto: () => void;
   onBoleta: () => void;
 }) {
   const escritorio = useEsEscritorio();
@@ -124,6 +126,11 @@ function MenuNuevo({
         titulo={mensajes.boletas.menu.movimiento}
         descripcion={mensajes.boletas.menu.movimientoDescripcion}
         onClick={onMovimiento}
+      />
+      <OpcionMenu
+        titulo={mensajes.boletas.menu.foto}
+        descripcion={mensajes.boletas.menu.fotoDescripcion}
+        onClick={onFoto}
       />
       <OpcionMenu
         titulo={mensajes.boletas.menu.boleta}
@@ -184,6 +191,11 @@ export function BotonNuevo({
         onMovimiento={() => {
           setMenuAbierto(false);
           setAbierto(true);
+        }}
+        onFoto={() => {
+          setMenuAbierto(false);
+          // El navegador sólo abre la cámara tras un toque en la propia página: allí se muestra "Tomar foto".
+          router.push('/boletas/nueva?camara=1');
         }}
         onBoleta={() => {
           setMenuAbierto(false);

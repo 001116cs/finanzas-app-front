@@ -43,6 +43,12 @@ describe('BotonNuevo', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it('"Tomar foto" navega a /boletas/nueva con la cámara activada', async () => {
+    await abrirMenu();
+    await userEvent.click(screen.getByRole('button', { name: new RegExp(mensajes.boletas.menu.foto) }));
+    expect(push).toHaveBeenCalledWith('/boletas/nueva?camara=1');
+  });
+
   it('"Subir boleta" navega a /boletas/nueva', async () => {
     await abrirMenu();
     await userEvent.click(screen.getByRole('button', { name: new RegExp(mensajes.boletas.menu.boleta) }));
