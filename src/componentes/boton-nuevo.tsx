@@ -3,13 +3,14 @@
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useSyncExternalStore, type ChangeEvent } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import type { components } from '@/lib/api/esquema';
 import { esDispositivoTactil } from '@/lib/boletas/camara-web';
 import { guardarFotoPendiente } from '@/lib/boletas/foto-pendiente';
 import type { TipoVista } from '@/lib/tipo-vista';
+import { cn } from '@/lib/utils';
 import { mensajes } from '@/mensajes/es';
 import { CamaraWeb } from './boletas/camara-web';
 import { ACEPTA_SUBIR } from './boletas/escaner-boleta';
@@ -88,6 +89,24 @@ export function PanelMovimiento({
   );
 }
 
+const CLASE_OPCION = 'h-auto w-full flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left';
+
+function ContenidoOpcion({ titulo, descripcion, etiqueta }: { titulo: string; descripcion: string; etiqueta?: string }) {
+  return (
+    <>
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="text-base font-medium">{titulo}</span>
+        {etiqueta && (
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+            {etiqueta}
+          </span>
+        )}
+      </span>
+      <span className="text-sm font-normal text-muted-foreground">{descripcion}</span>
+    </>
+  );
+}
+
 function OpcionMenu({
   titulo,
   descripcion,
@@ -101,22 +120,49 @@ function OpcionMenu({
   onClick: () => void;
 }) {
   return (
-    <Button
-      type="button"
-      variant="outline"
-      onClick={onClick}
-      className="h-auto w-full flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left"
-    >
-      <span className="flex flex-wrap items-center gap-2">
-        <span className="text-base font-medium">{titulo}</span>
-        {etiqueta && (
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-            {etiqueta}
-          </span>
-        )}
-      </span>
-      <span className="text-sm font-normal text-muted-foreground">{descripcion}</span>
+    <Button type="button" variant="outline" onClick={onClick} className={CLASE_OPCION}>
+      <ContenidoOpcion titulo={titulo} descripcion={descripcion} etiqueta={etiqueta} />
     </Button>
+  );
+}
+
+/**
+ * Opción que abre un selector de archivos. El <input> va DENTRO de la opción (visualmente oculto, no
+ * `hidden`): iOS ancla su menú (Fototeca / Tomar foto / Seleccionar archivo) al elemento que lo abre,
+ * y si ese elemento desaparece el menú queda flotando en cualquier sitio.
+ */
+function OpcionArchivo({
+  titulo,
+  descripcion,
+  accept,
+  onElegido,
+}: {
+  titulo: string;
+  descripcion: string;
+  accept: string;
+  onElegido: (archivo: File) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        buttonVariants({ variant: 'outline' }),
+        CLASE_OPCION,
+        'cursor-pointer focus-within:ring-2 focus-within:ring-ring',
+      )}
+    >
+      <ContenidoOpcion titulo={titulo} descripcion={descripcion} />
+      <input
+        type="file"
+        accept={accept}
+        aria-label={titulo}
+        className="sr-only"
+        onChange={(e) => {
+          const archivo = e.target.files?.[0];
+          e.target.value = '';
+          if (archivo) onElegido(archivo);
+        }}
+      />
+    </label>
   );
 }
 
@@ -125,13 +171,14 @@ function MenuNuevo({
   onAbiertoChange,
   onMovimiento,
   onFoto,
-  onBoleta,
+  onImagenElegida,
 }: {
   abierto: boolean;
   onAbiertoChange: (a: boolean) => void;
   onMovimiento: () => void;
   onFoto: () => void;
-  onBoleta: () => void;
+  /** Imagen elegida con "Subir boleta" (el menú sigue abierto mientras se elige). */
+  onImagenElegida: (imagen: File) => void;
 }) {
   const escritorio = useEsEscritorio();
   const opciones = (
@@ -147,10 +194,11 @@ function MenuNuevo({
         etiqueta={mensajes.boletas.menu.fotoRecomendado}
         onClick={onFoto}
       />
-      <OpcionMenu
+      <OpcionArchivo
         titulo={mensajes.boletas.menu.boleta}
         descripcion={mensajes.boletas.menu.boletaDescripcion}
-        onClick={onBoleta}
+        accept={ACEPTA_SUBIR}
+        onElegido={onImagenElegida}
       />
     </div>
   );
@@ -193,13 +241,17 @@ export function BotonNuevo({
   const inputSubir = useRef<HTMLInputElement>(null);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
 
-  /** Guarda la imagen elegida (cámara o archivo) y va a /boletas/nueva, que la lee al entrar. */
+  /** Guarda la imagen elegida (cámara, archivo o webcam) y va a /boletas/nueva, que la lee al entrar. */
+  function irALeer(imagen: File) {
+    setMenuAbierto(false);
+    guardarFotoPendiente(imagen);
+    router.push('/boletas/nueva?foto=1');
+  }
+
   function alElegirImagen(e: ChangeEvent<HTMLInputElement>) {
     const imagen = e.target.files?.[0];
     e.target.value = '';
-    if (!imagen) return;
-    guardarFotoPendiente(imagen);
-    router.push('/boletas/nueva?foto=1');
+    if (imagen) irALeer(imagen);
   }
   const [abierto, setAbierto] = useState(false);
   return (
@@ -226,13 +278,9 @@ export function BotonNuevo({
           else setCamaraAbierta(true);
           setMenuAbierto(false);
         }}
-        onBoleta={() => {
-          // Mismo selector que "Subir imagen" de /boletas/nueva, abierto en el mismo toque.
-          inputSubir.current?.click();
-          setMenuAbierto(false);
-        }}
+        onImagenElegida={irALeer}
       />
-      {/* Fuera del menú para que no se desmonte al cerrarlo. */}
+      {/* Cámara nativa: fuera del menú, que se cierra al abrirla (la cámara ocupa toda la pantalla). */}
       <input
         ref={inputFoto}
         type="file"
@@ -241,13 +289,13 @@ export function BotonNuevo({
         hidden
         onChange={alElegirImagen}
       />
+      {/* Alternativa de la webcam cuando la cámara del PC no está disponible. */}
       <input ref={inputSubir} type="file" accept={ACEPTA_SUBIR} hidden onChange={alElegirImagen} />
       {camaraAbierta && (
         <CamaraWeb
           onCaptura={(foto) => {
             setCamaraAbierta(false);
-            guardarFotoPendiente(foto);
-            router.push('/boletas/nueva?foto=1');
+            irALeer(foto);
           }}
           onCerrar={() => setCamaraAbierta(false)}
           onSubirEnSuLugar={() => {

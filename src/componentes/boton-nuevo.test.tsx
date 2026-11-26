@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mensajes } from '@/mensajes/es';
@@ -51,7 +51,7 @@ describe('BotonNuevo', () => {
     await abrirMenu();
     expect(screen.getByText(mensajes.boletas.menu.titulo)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: new RegExp(mensajes.boletas.menu.movimiento) })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: new RegExp(mensajes.boletas.menu.boleta) })).toBeInTheDocument();
+    expect(screen.getByLabelText(new RegExp(mensajes.boletas.menu.boleta))).toBeInTheDocument();
     expect(screen.queryByTestId('formulario-movimiento')).not.toBeInTheDocument();
   });
 
@@ -67,7 +67,7 @@ describe('BotonNuevo', () => {
     await abrirMenu();
     const opcion = screen.getByRole('button', { name: new RegExp(mensajes.boletas.menu.foto) });
     expect(opcion).toHaveTextContent(mensajes.boletas.menu.fotoRecomendado);
-    const subir = screen.getByRole('button', { name: new RegExp(mensajes.boletas.menu.boleta) });
+    const subir = screen.getByLabelText(new RegExp(mensajes.boletas.menu.boleta)).closest('label')!;
     expect(subir).not.toHaveTextContent(mensajes.boletas.menu.fotoRecomendado);
   });
 
@@ -106,23 +106,21 @@ describe('BotonNuevo', () => {
     descartarFotoPendiente();
   });
 
-  it('"Subir boleta" abre el selector de imágenes directamente y, con la imagen elegida, va a leerla', async () => {
-    const abrirSelector = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
-    const { container } = render(<BotonNuevo categorias={[]} tipoInicial="gasto" onGuardado={vi.fn()} />);
-    await userEvent.click(screen.getByRole('button', { name: mensajes.dashboard.nuevo }));
-    await userEvent.click(screen.getByRole('button', { name: new RegExp(mensajes.boletas.menu.boleta) }));
-
-    expect(abrirSelector).toHaveBeenCalledTimes(1);
-    expect(push).not.toHaveBeenCalled();
-    abrirSelector.mockRestore();
-
-    // El mismo selector que "Subir imagen" de /boletas/nueva: sin capture (galería, archivos o cámara).
-    const input = container.querySelector('input[type=file]:not([capture])') as HTMLInputElement;
+  it('"Subir boleta" lleva el selector dentro de la opción (iOS ancla ahí su menú) y el menú sigue abierto hasta elegir', async () => {
+    await abrirMenu();
+    // El selector de archivos está dentro de la propia opción del menú, con su nombre.
+    const input = screen.getByLabelText(new RegExp(mensajes.boletas.menu.boleta)) as HTMLInputElement;
+    expect(input).toHaveAttribute('type', 'file');
+    expect(input).not.toHaveAttribute('capture');
+    // El mismo selector que "Subir imagen" de /boletas/nueva (galería, archivos o cámara).
     expect(input).toHaveAttribute('accept', ACEPTA_SUBIR);
+    expect(screen.getByText(mensajes.boletas.menu.titulo)).toBeInTheDocument();
+
     const imagen = new File(['a'], 'b.png', { type: 'image/png' });
     await userEvent.upload(input, imagen);
     expect(leerFotoPendiente()).toBe(imagen);
     expect(push).toHaveBeenCalledWith('/boletas/nueva?foto=1');
+    await waitFor(() => expect(screen.queryByText(mensajes.boletas.menu.titulo)).toBeNull());
     descartarFotoPendiente();
   });
 });
