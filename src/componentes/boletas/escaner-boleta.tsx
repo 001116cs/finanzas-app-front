@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { escanearBoleta, obtenerUsoIa, type LecturaBoleta, type UsoIa } from '@/lib/api/boletas';
 import { mensajeDeError, useApi } from '@/lib/api/usar-api';
@@ -19,13 +19,17 @@ function avisoDeLimite(uso: UsoIa | null): string | null {
 export function EscanerBoleta({
   onLeida,
   permitirCamara = true,
+  archivoInicial = null,
 }: {
   permitirCamara?: boolean;
   onLeida: (lectura: LecturaBoleta, imagen: Blob) => void;
+  /** Foto ya elegida (p. ej. desde "Tomar foto" del menú +): se lee al montar, una sola vez. */
+  archivoInicial?: File | null;
 }) {
   const api = useApi();
   const [uso, setUso] = useState<UsoIa | null>(null);
-  const [leyendo, setLeyendo] = useState(false);
+  const [leyendo, setLeyendo] = useState(archivoInicial !== null);
+  const inicialLeido = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const inputFoto = useRef<HTMLInputElement>(null);
   const inputSubir = useRef<HTMLInputElement>(null);
@@ -50,12 +54,8 @@ export function EscanerBoleta({
   const aviso = avisoDeLimite(uso);
   const deshabilitado = leyendo || aviso !== null;
 
-  async function alElegir(evento: ChangeEvent<HTMLInputElement>) {
-    const archivo = evento.target.files?.[0];
-    evento.target.value = '';
-    if (!archivo) return;
-    setError(null);
-    setLeyendo(true);
+  /** Reduce y lee la imagen. No cambia estado antes del primer await (se llama también desde un efecto). */
+  async function leer(archivo: File) {
     try {
       const imagen = await reducirImagen(archivo);
       const lectura = await escanearBoleta(api, imagen);
@@ -70,6 +70,25 @@ export function EscanerBoleta({
       setLeyendo(false);
       setVersion((v) => v + 1);
     }
+  }
+
+  // La foto inicial se lee una sola vez (el ref evita repetir la llamada a la IA si React remonta).
+  const leerInicial = useEffectEvent((archivo: File) => {
+    void leer(archivo);
+  });
+  useEffect(() => {
+    if (!archivoInicial || inicialLeido.current) return;
+    inicialLeido.current = true;
+    leerInicial(archivoInicial);
+  }, [archivoInicial]);
+
+  async function alElegir(evento: ChangeEvent<HTMLInputElement>) {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = '';
+    if (!archivo) return;
+    setError(null);
+    setLeyendo(true);
+    await leer(archivo);
   }
 
   return (

@@ -1,11 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EscanerBoleta } from '@/componentes/boletas/escaner-boleta';
 import { RevisionBoleta } from '@/componentes/boletas/revision-boleta';
 import type { LecturaBoleta } from '@/lib/api/boletas';
+import { descartarFotoPendiente, leerFotoPendiente } from '@/lib/boletas/foto-pendiente';
 import { mensajes } from '@/mensajes/es';
 
 export default function NuevaBoleta({
@@ -13,8 +14,13 @@ export default function NuevaBoleta({
 }: {
   searchParams: Promise<{ [clave: string]: string | string[] | undefined }>;
 }) {
-  // `?camara=1` (desde "Tomar foto" del +) muestra también el botón de la cámara.
-  const conCamara = use(searchParams).camara === '1';
+  const consulta = use(searchParams);
+  // `?foto=1`: viene de "Tomar foto" del +, con la foto ya hecha; se lee al entrar.
+  const [fotoInicial] = useState(() => (consulta.foto === '1' ? leerFotoPendiente() : null));
+  const conCamara = consulta.camara === '1' || consulta.foto === '1';
+  useEffect(() => {
+    descartarFotoPendiente();
+  }, []);
   const router = useRouter();
   const [escaneo, setEscaneo] = useState<{ lectura: LecturaBoleta; imagen: Blob } | null>(null);
   return (
@@ -28,6 +34,7 @@ export default function NuevaBoleta({
             <div className="grid gap-3">
               <EscanerBoleta
                 permitirCamara={conCamara}
+                archivoInicial={fotoInicial}
                 onLeida={(lectura, imagen) => setEscaneo({ lectura, imagen })}
               />
               <button type="button" onClick={() => router.back()} className="text-sm underline">

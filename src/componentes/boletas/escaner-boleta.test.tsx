@@ -69,6 +69,17 @@ describe('EscanerBoleta', () => {
     expect(screen.getByRole('button', { name: mensajes.boletas.tomarFoto })).toBeDisabled();
   });
 
+  it('con archivoInicial lee esa foto sin esperar a que se elija otra, una sola vez', async () => {
+    const onLeida = vi.fn();
+    const foto = new File(['a'], 'b.jpg', { type: 'image/jpeg' });
+    const { rerender } = render(<EscanerBoleta onLeida={onLeida} archivoInicial={foto} />);
+    expect(screen.getByRole('status')).toHaveTextContent(mensajes.boletas.leyendo);
+    await waitFor(() => expect(onLeida).toHaveBeenCalledWith(lectura, blob));
+    expect(reducir).toHaveBeenCalledWith(foto);
+    rerender(<EscanerBoleta onLeida={onLeida} archivoInicial={foto} />);
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
   it('entrega la lectura y la imagen al escanear', async () => {
     const onLeida = vi.fn();
     const { container } = render(<EscanerBoleta onLeida={onLeida} />);

@@ -2,11 +2,12 @@
 
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useSyncExternalStore } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import type { components } from '@/lib/api/esquema';
+import { guardarFotoPendiente } from '@/lib/boletas/foto-pendiente';
 import type { TipoVista } from '@/lib/tipo-vista';
 import { mensajes } from '@/mensajes/es';
 import { FormularioMovimiento } from './formulario-movimiento';
@@ -174,6 +175,7 @@ export function BotonNuevo({
 }) {
   const router = useRouter();
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const inputFoto = useRef<HTMLInputElement>(null);
   const [abierto, setAbierto] = useState(false);
   return (
     <>
@@ -193,13 +195,28 @@ export function BotonNuevo({
           setAbierto(true);
         }}
         onFoto={() => {
+          // Se abre el selector de cámara en el mismo toque (el navegador sólo lo permite así).
+          inputFoto.current?.click();
           setMenuAbierto(false);
-          // El navegador sólo abre la cámara tras un toque en la propia página: allí se muestra "Tomar foto".
-          router.push('/boletas/nueva?camara=1');
         }}
         onBoleta={() => {
           setMenuAbierto(false);
           router.push('/boletas/nueva');
+        }}
+      />
+      {/* Fuera del menú para que no se desmonte al cerrarlo. */}
+      <input
+        ref={inputFoto}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        onChange={(e) => {
+          const foto = e.target.files?.[0];
+          e.target.value = '';
+          if (!foto) return;
+          guardarFotoPendiente(foto);
+          router.push('/boletas/nueva?foto=1');
         }}
       />
       <PanelMovimiento

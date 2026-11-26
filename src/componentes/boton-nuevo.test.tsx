@@ -9,6 +9,7 @@ vi.mock('./formulario-movimiento', () => ({
   FormularioMovimiento: () => <div data-testid="formulario-movimiento" />,
 }));
 
+import { descartarFotoPendiente, leerFotoPendiente } from '@/lib/boletas/foto-pendiente';
 import { BotonNuevo } from './boton-nuevo';
 
 beforeEach(() => {
@@ -43,10 +44,23 @@ describe('BotonNuevo', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it('"Tomar foto" navega a /boletas/nueva con la cámara activada', async () => {
-    await abrirMenu();
+  it('"Tomar foto" abre la cámara directamente y, con la foto hecha, va a leerla', async () => {
+    const abrirSelector = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+    const { container } = render(<BotonNuevo categorias={[]} tipoInicial="gasto" onGuardado={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: mensajes.dashboard.nuevo }));
     await userEvent.click(screen.getByRole('button', { name: new RegExp(mensajes.boletas.menu.foto) }));
-    expect(push).toHaveBeenCalledWith('/boletas/nueva?camara=1');
+
+    expect(abrirSelector).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
+    abrirSelector.mockRestore();
+
+    const input = container.querySelector('input[capture]') as HTMLInputElement;
+    expect(input).toHaveAttribute('accept', 'image/*');
+    const foto = new File(['a'], 'b.jpg', { type: 'image/jpeg' });
+    await userEvent.upload(input, foto);
+    expect(leerFotoPendiente()).toBe(foto);
+    expect(push).toHaveBeenCalledWith('/boletas/nueva?foto=1');
+    descartarFotoPendiente();
   });
 
   it('"Subir boleta" navega a /boletas/nueva', async () => {
